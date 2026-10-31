@@ -24,9 +24,10 @@ vp test run \
   apps/web/src/fork/sidebar/projectOrganization.test.ts \
   apps/web/src/components/files/FilePreviewPanel.browser.test.tsx \
   apps/web/src/rightPanelStore.test.ts \
-  apps/web/src/fork/chat/clearCommand.test.ts
+  apps/web/src/fork/chat/clearCommand.test.ts \
+  apps/desktop/src/fork/forkUpdates.test.ts
 
 echo "==> Lint fork code"
-vp lint apps/web/src/fork apps/server/src/notes apps/desktop/src/ipc/methods/keepAwake.ts
+vp lint apps/web/src/fork apps/server/src/notes apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/fork
 
 echo "Fork checks passed."

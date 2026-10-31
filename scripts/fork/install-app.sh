@@ -28,5 +28,8 @@ source_app="${volume}/${app_name}.app"
 if [[ -d "$target" ]]; then rm -rf "$target"; fi
 ditto "$source_app" "$target"
 
+# Lets the app's "Check for Updates" find this checkout.
+printf '{"repo":"%s"}\n' "$(pwd)" >"$HOME/.t3code-fork.json"
+
 open -a "$target"
 echo "Installed ${target}."

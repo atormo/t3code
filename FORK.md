@@ -19,7 +19,8 @@ y vuelve a ejecutarlo. La regla al resolver: conservar el cambio de t3code y vol
 encima nuestra parte, que siempre es pequeña.
 
 La app instalada no tiene canal de actualización: una versión oficial de T3 Code nunca la
-sobrescribe. Se actualiza solo con `install-app.sh`.
+sobrescribe. En la app, **T3 Code → Check for Updates…** dice cuántos cambios nuevos tiene t3code y,
+si aceptas, abre la Terminal con `sync-upstream.sh --install`.
 
 ## Reglas para cambios nuevos
 
@@ -41,6 +42,7 @@ sobrescribe. Se actualiza solo con `install-app.sh`.
 | Keep awake                                                                                                                 | `fork/statusbar/KeepAwake.tsx`, `desktop/src/ipc/methods/keepAwake.ts`                                 | `desktop/src/ipc/channels.ts`, `DesktopIpcHandlers.ts`, `preload.ts`, `contracts/src/ipc.ts` (`setKeepAwake`), `contracts/src/settings.ts` (`keepAwakeWhileAgentsWork`), `LabsSettingsPanel.tsx`, `settingsSearch.ts`                                                     |
 | Vista terminal de los hilos (Apariencia → «Terminal-style threads»)                                                        | `fork/chatview/*`                                                                                      | `contracts/src/settings.ts` (`terminalThreadView`), `settings/AppearanceSettingsPanel.tsx`, `settings/settingsSearch.ts`; el CSS se apoya en los `data-*` de las filas del timeline (`data-message-role`, `data-timeline-row-kind`)                                       |
 | `/clear` abre un hilo nuevo en el mismo proyecto                                                                           | `fork/chat/clearCommand.ts`                                                                            | `chat/useComposerSend.ts` (intercepta `/clear` antes de enviar)                                                                                                                                                                                                           |
+| «Check for Updates» compara tu fork con t3code y ofrece actualizar en la Terminal                                          | `desktop/src/fork/forkUpdates.ts`                                                                      | `desktop/src/window/DesktopApplicationMenu.ts` (sin canal de actualizaciones, llama a `checkForkUpdates`); `install-app.sh` guarda la ruta del código en `~/.t3code-fork.json`                                                                                            |
 | Notas con pestañas (Markdown en `userdata/notes/`)                                                                         | `fork/notes/*`, `server/src/notes/*`, `contracts/src/notes.ts`                                         | `contracts/src/rpc.ts` e `index.ts` (RPC `notes.*`), `server/src/ws.ts`, `server.ts`, `ws.test.ts`, `auth/RpcAuthorization.ts`, `observability/RpcInstrumentation.ts`, `client-runtime/src/state/server.ts`, `apps/web/package.json` (`@tiptap/markdown`)                 |
 
 ## Datos

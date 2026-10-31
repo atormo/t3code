@@ -12,6 +12,7 @@ import * as ElectronMenu from "../electron/ElectronMenu.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
+import * as ForkUpdates from "../fork/forkUpdates.ts";
 
 export class DesktopApplicationMenuActionError extends Schema.TaggedError<DesktopApplicationMenuActionError>()(
   "DesktopApplicationMenuActionError",
@@ -90,19 +91,13 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
 
 const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
   const updates = yield* DesktopUpdates.DesktopUpdates;
-  const electronDialog = yield* ElectronDialog.ElectronDialog;
   const disabledReason = yield* updates.disabledReason;
   if (Option.isSome(disabledReason)) {
     yield* logUpdaterInfo("manual update check requested, but updates are disabled", {
       disabledReason: disabledReason.value,
     });
-    yield* electronDialog.showMessageBox({
-      type: "info",
-      title: "Updates unavailable",
-      message: "Automatic updates are not available right now.",
-      detail: disabledReason.value,
-      buttons: ["OK"],
-    });
+    // Fork: no update feed, so check this checkout against t3code instead.
+    yield* ForkUpdates.checkForkUpdates;
     return;
   }
 
