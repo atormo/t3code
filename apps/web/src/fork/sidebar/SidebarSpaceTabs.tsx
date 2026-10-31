@@ -55,8 +55,7 @@ export function SidebarSpaceTabs(props: {
     <div
       role="tablist"
       aria-label="Spaces"
-      data-fork-space-tabs=""
-      className="mb-1.5 flex items-center gap-0.5 overflow-x-auto px-(--sidebar-row-content-inset)"
+      className="mb-1.5 flex items-center px-(--sidebar-row-content-inset)"
     >
       {spaces.length > 0 ? (
         <Tooltip>
@@ -83,40 +82,46 @@ export function SidebarSpaceTabs(props: {
           <TooltipPopup>All projects, from every space</TooltipPopup>
         </Tooltip>
       ) : null}
-      {spaces.map((space) => (
-        <Button
-          key={space.id}
-          role="tab"
-          size="xs"
-          variant={space.id === activeSpaceId ? "secondary" : "ghost-muted"}
-          aria-selected={space.id === activeSpaceId}
-          className="relative shrink-0"
-          onClick={() => setActiveSpace(space.id)}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            void showMenu(space, { x: event.clientX, y: event.clientY });
-          }}
-          {...props.tabDragProps(space.id)}
-        >
-          {space.name}
-        </Button>
-      ))}
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              size={spaces.length === 0 ? "xs" : "icon-xs"}
-              variant="ghost-muted"
-              aria-label="New space"
-              onClick={() => setNameRequest({ kind: "create", projectKey: null })}
-            />
-          }
-        >
-          <PlusIcon aria-hidden />
-          {spaces.length === 0 ? <span>New space</span> : null}
-        </TooltipTrigger>
-        <TooltipPopup>Spaces split projects into tabs, such as Work and Personal</TooltipPopup>
-      </Tooltip>
+      {/* The house stays put; only the space tabs scroll. */}
+      <div
+        data-fork-space-tabs=""
+        className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+      >
+        {spaces.map((space) => (
+          <Button
+            key={space.id}
+            role="tab"
+            size="xs"
+            variant={space.id === activeSpaceId ? "secondary" : "ghost-muted"}
+            aria-selected={space.id === activeSpaceId}
+            className="relative shrink-0"
+            onClick={() => setActiveSpace(space.id)}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              void showMenu(space, { x: event.clientX, y: event.clientY });
+            }}
+            {...props.tabDragProps(space.id)}
+          >
+            {space.name}
+          </Button>
+        ))}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size={spaces.length === 0 ? "xs" : "icon-xs"}
+                variant="ghost-muted"
+                aria-label="New space"
+                onClick={() => setNameRequest({ kind: "create", projectKey: null })}
+              />
+            }
+          >
+            <PlusIcon aria-hidden />
+            {spaces.length === 0 ? <span>New space</span> : null}
+          </TooltipTrigger>
+          <TooltipPopup>Spaces split projects into tabs, such as Work and Personal</TooltipPopup>
+        </Tooltip>
+      </div>
       {nameRequest ? (
         <SidebarProjectGroupNameDialog
           noun="space"
