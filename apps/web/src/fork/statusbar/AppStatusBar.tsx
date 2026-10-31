@@ -7,6 +7,7 @@ import { isElectron } from "../../env";
 import { usePrimaryEnvironmentId } from "../../state/environments";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { TerminalThreadViewSync } from "../chatview/TerminalThreadView";
 import { NotesPanel } from "../notes/NotesPanel";
 import { UsageLimitsItem } from "./UsageLimitsItem";
 import { KeepAwakeItem } from "./KeepAwake";
@@ -32,6 +33,7 @@ export function AppStatusBar() {
       aria-label="Status bar"
       className="fixed inset-x-0 bottom-0 z-30 flex h-(--fork-statusbar-height) items-center gap-1 border-t bg-sidebar px-2 text-sidebar-foreground"
     >
+      <TerminalThreadViewSync />
       {environmentId !== null ? <UsageLimitsItem /> : null}
       {isElectron ? <KeepAwakeItem /> : null}
       <div className="flex-1" />

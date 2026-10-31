@@ -309,6 +309,19 @@ export function AppearanceSettingsPanel() {
           }
         />
         <SettingsRow
+          {...searchableSetting("terminal-thread-view")}
+          description="Show your messages as prompt lines and the agent's steps as a monospace log, like a terminal. Replies stay in regular text."
+          control={
+            <Switch
+              checked={settings.terminalThreadView}
+              onCheckedChange={(checked) =>
+                updateSettings({ terminalThreadView: Boolean(checked) })
+              }
+              aria-label="Terminal-style threads"
+            />
+          }
+        />
+        <SettingsRow
           {...searchableSetting("math-rendering")}
           description="Typeset LaTeX math, such as $x^2$ or \[x^2\], in messages and Markdown previews. The composer keeps TeX source editable."
           resetAction={

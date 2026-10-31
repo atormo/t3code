@@ -1,0 +1,40 @@
+/*
+ * Terminal-style threads: your messages become full-width prompt lines and the agent's steps a
+ * monospace log. Replies keep the regular text face. Scoped to the timeline's own data attributes.
+ */
+[data-fork-chat-view="terminal"] [data-message-role="user"] > div {
+  align-items: stretch;
+}
+[data-fork-chat-view="terminal"] [data-message-role="user"] > div > div {
+  max-width: 100%;
+}
+[data-fork-chat-view="terminal"] [data-message-role="user"] > div > div:first-child {
+  position: relative;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--primary) 16%, var(--card));
+  padding-left: 2rem !important;
+}
+[data-fork-chat-view="terminal"] [data-message-role="user"] > div > div:first-child::before {
+  content: "›";
+  position: absolute;
+  top: 0.75rem;
+  left: 0.9rem;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1.6;
+}
+[data-fork-chat-view="terminal"] [data-message-role="user"] [data-user-message-body],
+[data-fork-chat-view="terminal"] [data-message-role="user"] [data-user-message-body] * {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+[data-fork-chat-view="terminal"] [data-timeline-row-kind="work"],
+[data-fork-chat-view="terminal"] [data-timeline-row-kind="work-toggle"],
+[data-fork-chat-view="terminal"] [data-timeline-row-kind="turn-fold"] {
+  font-family: var(--font-mono);
+}
+[data-fork-chat-view="terminal"] [data-timeline-row-kind="work"] *,
+[data-fork-chat-view="terminal"] [data-timeline-row-kind="work-toggle"] * {
+  font-size: 12.5px;
+}

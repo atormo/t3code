@@ -340,6 +340,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["reasoning effort thinking bars graph word label level composer"],
   },
   {
+    id: "terminal-thread-view",
+    title: "Terminal-style threads",
+    to: "/settings/appearance",
+    searchTerms: ["terminal console cli monospace transcript log codex claude code view"],
+  },
+  {
     id: "math-rendering",
     title: "Render math",
     to: "/settings/appearance",
