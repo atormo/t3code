@@ -62,6 +62,7 @@ import { type ChatMessage } from "../../types";
 import { recordPromptSent } from "../GitHubStarPrompt";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { newMessageId, newThreadId } from "~/lib/utils";
+import { isClearCommand } from "../../fork/chat/clearCommand";
 import { useNewThreadHandler } from "../../hooks/useHandleNewThread";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import {
@@ -427,6 +428,18 @@ export function useComposerSend(input: ComposerSendInput) {
         setComposerDraftPrompt(composerDraftTarget, "");
         composerRef.current?.resetCursorState();
       }
+      return;
+    }
+    // Fork: /clear starts a fresh thread in this project instead of reaching the provider.
+    if (
+      !directAnnotation &&
+      !draftHasNonPromptContent(composerDraftTarget) &&
+      isClearCommand(promptRef.current)
+    ) {
+      promptRef.current = "";
+      setComposerDraftPrompt(composerDraftTarget, "");
+      composerRef.current?.resetCursorState();
+      handleNewThreadInActiveProject();
       return;
     }
 
