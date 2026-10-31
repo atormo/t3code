@@ -1,3 +1,6 @@
+import { getProjectOrderKey } from "@t3tools/client-runtime/state/project-grouping";
+import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
+
 import { randomUUID } from "../../lib/utils";
 import { useUiStateStore } from "../../uiStateStore";
 import {
@@ -93,6 +96,18 @@ export function moveSpace(spaceId: string, targetSpaceId: string) {
   const spaces = useSidebarSpacesStore.getState();
   spaces.setSpaces(
     [...moveSpaceToIndexOf(spaces.spaces, spaceId, targetSpaceId)],
+    spaces.activeSpaceId,
+  );
+}
+
+/** A thread started with no project gets its own scratch project; it stays in the open space. */
+export function fileScratchProjectInActiveSpace(
+  project: Pick<EnvironmentProject, "environmentId" | "workspaceRoot">,
+) {
+  const spaces = useSidebarSpacesStore.getState();
+  if (spaces.activeSpaceId === null) return;
+  spaces.setSpaces(
+    assignProjectToSpace(spaces.spaces, getProjectOrderKey(project), spaces.activeSpaceId),
     spaces.activeSpaceId,
   );
 }

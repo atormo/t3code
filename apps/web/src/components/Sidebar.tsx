@@ -273,11 +273,15 @@ import {
 import { SidebarProjectGroupHeader } from "./sidebar/SidebarProjectGroupHeader";
 import {
   isParkedGroup,
-  isProjectInSpace,
+  scopeFoldersToSpace,
+  spaceDraftProjectKeys,
   visibleSidebarGroups,
 } from "../fork/sidebar/projectOrganization";
 import { SidebarSpaceTabs } from "../fork/sidebar/SidebarSpaceTabs";
-import { moveProjectToGroup } from "../fork/sidebar/sidebarOrganizationActions";
+import {
+  fileScratchProjectInActiveSpace,
+  moveProjectToGroup,
+} from "../fork/sidebar/sidebarOrganizationActions";
 import { useSidebarSpacesStore } from "../fork/sidebar/sidebarSpacesStore";
 import { useSidebarProjectDrag } from "../fork/sidebar/useSidebarProjectDrag";
 import {
@@ -1460,9 +1464,13 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     keepEmptyFolders: (group) => scopedProjectGroups.length > 0 || !group.archived,
   });
   const spaceFolders =
-    projectFolders?.filter((folder) =>
-      isProjectInSpace(folder.group.projectKey, sidebarSpaces, activeSpaceId),
-    ) ?? null;
+    projectFolders === null
+      ? null
+      : scopeFoldersToSpace(projectFolders, sidebarSpaces, activeSpaceId);
+  const spaceDraftKeys =
+    projectFolders === null
+      ? null
+      : spaceDraftProjectKeys(projectFolders, sidebarSpaces, activeSpaceId);
   const projectDrag = useSidebarProjectDrag({
     folders: spaceFolders,
     groups: sidebarProjectGroups,
@@ -3055,7 +3063,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     const scratchEnvironmentId = scratchProject.scratchEnvironmentId(null);
     if (boringSidebarEnabled && !event?.shiftKey && scratchEnvironmentId !== null) {
       if (isMobile) setOpenMobile(false);
-      void scratchProject.startScratchThread(scratchEnvironmentId);
+      void scratchProject.openScratchProject(scratchEnvironmentId).then((project) => {
+        if (!project) return;
+        fileScratchProjectInActiveSpace(project);
+        return handleNewThread(scopeProjectRef(project.environmentId, project.id));
+      });
       return;
     }
     if (
@@ -3547,7 +3559,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           key="draft-sessions"
                           projectByKey={projectByKey}
                           projectDisplayNameByKey={projectDisplayNameByKey}
-                          scopedProjectKeys={scopedProjectKeys}
+                          scopedProjectKeys={
+                            spaceDraftKeys === null
+                              ? scopedProjectKeys
+                              : new Set(
+                                  [...spaceDraftKeys].filter(
+                                    (key) => scopedProjectKeys?.has(key) ?? true,
+                                  ),
+                                )
+                          }
                           routeDraftId={routeDraftIdForRows}
                           onNavigateToDraft={navigateToDraft}
                           onDraftContextMenu={handleDraftContextMenu}

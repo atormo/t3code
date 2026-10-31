@@ -7,6 +7,7 @@ import {
 } from "../../components/sidebar/SidebarProjectGroupNameDialog";
 import { Button } from "../../components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
+import { cn } from "../../lib/utils";
 import { readLocalApi } from "../../localApi";
 import type { SidebarSpace } from "./projectOrganization";
 import { addSpace, removeSpace, renameSpace } from "./sidebarOrganizationActions";
@@ -61,18 +62,23 @@ export function SidebarSpaceTabs(props: {
         <Tooltip>
           <TooltipTrigger
             render={
-              <Button
+              <button
+                type="button"
                 role="tab"
-                size="icon-xs"
-                variant={activeSpaceId === null ? "secondary" : "ghost-muted"}
                 aria-selected={activeSpaceId === null}
                 aria-label="All projects"
-                className="shrink-0"
+                // Bare icon so it lines up with the search icon and the project icons below.
+                className={cn(
+                  "mr-1 flex h-6 shrink-0 cursor-pointer items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  activeSpaceId === null
+                    ? "text-sidebar-foreground"
+                    : "text-(--sidebar-icon-color) hover:text-sidebar-foreground",
+                )}
                 onClick={() => setActiveSpace(null)}
               />
             }
           >
-            <HouseIcon aria-hidden />
+            <HouseIcon aria-hidden className="size-4" />
           </TooltipTrigger>
           <TooltipPopup>All projects, from every space</TooltipPopup>
         </Tooltip>

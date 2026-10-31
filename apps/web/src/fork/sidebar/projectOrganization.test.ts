@@ -9,6 +9,8 @@ import {
   isProjectInSpace,
   moveSpaceToIndexOf,
   placeGroupBefore,
+  scopeFoldersToSpace,
+  spaceDraftProjectKeys,
   visibleSidebarGroups,
 } from "./projectOrganization";
 
@@ -113,5 +115,30 @@ describe("sidebar spaces", () => {
     );
     expect(result.spaces).toEqual([]);
     expect(result.groups.map((g) => g.id)).toEqual(["b"]);
+  });
+
+  it("keeps threads with no project in the space they were started in", () => {
+    const thread = (projectId: string) => ({ projectId, environmentId: "env" });
+    const scratch = {
+      group: {
+        projectKey: "no-project",
+        isScratch: true,
+        memberProjects: [
+          { id: "s1", environmentId: "env", physicalProjectKey: "env:/scratch/1" },
+          { id: "s2", environmentId: "env", physicalProjectKey: "env:/scratch/2" },
+        ],
+      },
+      threads: [thread("s1"), thread("s2")],
+      hiddenThreads: [],
+    };
+    const spaces = [
+      { id: "work", name: "Work", projectKeys: ["env:/scratch/1"] },
+      { id: "home", name: "Home", projectKeys: [] },
+    ];
+    expect(scopeFoldersToSpace([scratch], spaces, "work")[0]?.threads).toEqual([thread("s1")]);
+    expect(scopeFoldersToSpace([scratch], spaces, "home")).toEqual([]);
+    expect(scopeFoldersToSpace([scratch], spaces, null)[0]?.threads).toHaveLength(2);
+    expect([...(spaceDraftProjectKeys([scratch], spaces, "work") ?? [])]).toEqual(["env:s1"]);
+    expect(spaceDraftProjectKeys([scratch], spaces, null)).toBeNull();
   });
 });

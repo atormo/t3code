@@ -162,3 +162,79 @@ export function deleteSpace(
     groups: state.groups.filter((group) => group.spaceId !== spaceId),
   };
 }
+
+interface ScopedMember {
+  readonly id: string;
+  readonly environmentId: string;
+  readonly physicalProjectKey: string;
+}
+interface ScopedFolder<TThread> {
+  readonly group: {
+    readonly projectKey: string;
+    readonly isScratch?: boolean;
+    readonly memberProjects: readonly ScopedMember[];
+  };
+  readonly threads: readonly TThread[];
+  readonly hiddenThreads: readonly TThread[];
+}
+
+/**
+ * Each thread with no project has its own scratch project, filed in the space it was started
+ * in. Those stay in their space; the all-projects view shows them all.
+ */
+function isScratchMemberInSpace(
+  member: ScopedMember,
+  spaces: readonly SidebarSpace[],
+  activeSpaceId: string | null,
+): boolean {
+  if (activeSpaceId === null) return true;
+  return (
+    spaces
+      .find((space) => space.id === activeSpaceId)
+      ?.projectKeys.includes(member.physicalProjectKey) ?? false
+  );
+}
+
+/** The project folders, and the threads in them, that the active space shows. */
+export function scopeFoldersToSpace<
+  TThread extends { readonly projectId: string; readonly environmentId: string },
+  TFolder extends ScopedFolder<TThread>,
+>(folders: readonly TFolder[], spaces: readonly SidebarSpace[], activeSpaceId: string | null) {
+  return folders.flatMap((folder): TFolder[] => {
+    if (!folder.group.isScratch) {
+      return isProjectInSpace(folder.group.projectKey, spaces, activeSpaceId) ? [folder] : [];
+    }
+    if (activeSpaceId === null) return [folder];
+    const visible = new Set(
+      folder.group.memberProjects
+        .filter((member) => isScratchMemberInSpace(member, spaces, activeSpaceId))
+        .map((member) => `${member.environmentId}:${member.id}`),
+    );
+    const keep = (thread: TThread) => visible.has(`${thread.environmentId}:${thread.projectId}`);
+    const threads = folder.threads.filter(keep);
+    const hiddenThreads = folder.hiddenThreads.filter(keep);
+    if (threads.length === 0 && hiddenThreads.length === 0) return [];
+    return [{ ...folder, threads, hiddenThreads }];
+  });
+}
+
+/** `environmentId:projectId` of every project whose drafts the active space shows. */
+export function spaceDraftProjectKeys(
+  folders: readonly ScopedFolder<unknown>[],
+  spaces: readonly SidebarSpace[],
+  activeSpaceId: string | null,
+): ReadonlySet<string> | null {
+  if (activeSpaceId === null) return null;
+  const keys = new Set<string>();
+  for (const folder of folders) {
+    const inSpace = folder.group.isScratch
+      ? null
+      : isProjectInSpace(folder.group.projectKey, spaces, activeSpaceId);
+    for (const member of folder.group.memberProjects) {
+      if (inSpace ?? isScratchMemberInSpace(member, spaces, activeSpaceId)) {
+        keys.add(`${member.environmentId}:${member.id}`);
+      }
+    }
+  }
+  return keys;
+}
