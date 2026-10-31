@@ -1004,6 +1004,34 @@ export function groupSidebarThreadsByProject<
   return folders.filter((folder) => folder.threads.length > 0 || keepEmpty(folder.group));
 }
 
+/** Ungrouped project folders first, then each user folder with its projects in sidebar order. */
+export function sectionProjectFoldersByUserGroup<
+  TFolder extends { readonly group: { readonly projectKey: string } },
+  TUserGroup extends { readonly id: string; readonly projectKeys: readonly string[] },
+>(
+  folders: readonly TFolder[],
+  userGroups: readonly TUserGroup[],
+): Array<{ userGroup: TUserGroup | null; folders: TFolder[] }> {
+  const userGroupIdByProjectKey = new Map<string, string>();
+  for (const userGroup of userGroups) {
+    for (const key of userGroup.projectKeys) userGroupIdByProjectKey.set(key, userGroup.id);
+  }
+  const foldersByUserGroupId = new Map<string | null, TFolder[]>();
+  for (const folder of folders) {
+    const id = userGroupIdByProjectKey.get(folder.group.projectKey) ?? null;
+    const list = foldersByUserGroupId.get(id);
+    if (list) list.push(folder);
+    else foldersByUserGroupId.set(id, [folder]);
+  }
+  return [
+    { userGroup: null, folders: foldersByUserGroupId.get(null) ?? [] },
+    ...userGroups.map((userGroup) => ({
+      userGroup,
+      folders: foldersByUserGroupId.get(userGroup.id) ?? [],
+    })),
+  ];
+}
+
 export type SidebarV2TopStatusKind =
   | "approval"
   | "done"

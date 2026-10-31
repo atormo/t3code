@@ -3,6 +3,8 @@ import type { PullRequestMergeMethod } from "@t3tools/contracts";
 import { create } from "zustand";
 import { normalizeProjectPathForComparison } from "@t3tools/client-runtime/state/projects";
 
+import { randomUUID } from "./lib/utils";
+
 export const PERSISTED_STATE_KEY = "t3code:ui-state:v1";
 const THREAD_CHANGED_FILES_EXPANSION_VERSION = 2;
 const LEGACY_PERSISTED_STATE_KEYS = [
@@ -31,12 +33,21 @@ export interface PersistedUiState {
   threadChangedFilesExpansionVersion?: number;
   threadChangedFilesExpandedById?: Record<string, Record<string, boolean>>;
   pullRequestMergeMethod?: string;
+  sidebarProjectGroups?: SidebarProjectGroup[];
+}
+
+/** A user folder in the boring sidebar that holds project folders. */
+export interface SidebarProjectGroup {
+  id: string;
+  name: string;
+  projectKeys: string[];
 }
 
 export interface UiProjectState {
   projectExpandedById: Record<string, boolean>;
   projectOrder: string[];
   sidebarProjectScopeKeys: string[];
+  sidebarProjectGroups: SidebarProjectGroup[];
 }
 
 export interface UiThreadState {
@@ -59,6 +70,7 @@ const initialState: UiState = {
   projectExpandedById: {},
   projectOrder: [],
   sidebarProjectScopeKeys: [],
+  sidebarProjectGroups: [],
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
   defaultAdvertisedEndpointKey: null,
@@ -114,6 +126,23 @@ function sanitizeTimestampRecord(value: unknown): Record<string, string> {
   );
 }
 
+function sanitizeSidebarProjectGroups(value: unknown): SidebarProjectGroup[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const claimed = new Set<string>();
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const { id, name, projectKeys } = entry as Partial<SidebarProjectGroup>;
+    if (typeof id !== "string" || id.length === 0) return [];
+    if (typeof name !== "string" || name.trim().length === 0) return [];
+    // A project belongs to one folder; the first folder that lists it wins.
+    const keys = sanitizeStringArray(projectKeys).filter((key) => !claimed.has(key));
+    for (const key of keys) claimed.add(key);
+    return [{ id, name: name.trim(), projectKeys: keys }];
+  });
+}
+
 function isPullRequestMergeMethod(value: unknown): value is PullRequestMergeMethod {
   return value === "merge" || value === "squash" || value === "rebase";
 }
@@ -157,6 +186,7 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
     pullRequestMergeMethod: isPullRequestMergeMethod(parsed.pullRequestMergeMethod)
       ? parsed.pullRequestMergeMethod
       : initialState.pullRequestMergeMethod,
+    sidebarProjectGroups: sanitizeSidebarProjectGroups(parsed.sidebarProjectGroups),
   };
 }
 
@@ -236,6 +266,7 @@ export function persistState(state: UiState): void {
         threadChangedFilesExpansionVersion: THREAD_CHANGED_FILES_EXPANSION_VERSION,
         threadChangedFilesExpandedById: state.threadChangedFilesExpandedById,
         pullRequestMergeMethod: state.pullRequestMergeMethod,
+        sidebarProjectGroups: state.sidebarProjectGroups,
       } satisfies PersistedUiState),
     );
     if (!legacyKeysCleanedUp) {
@@ -428,6 +459,78 @@ export function reorderProjects(
   };
 }
 
+export function sidebarProjectGroupExpansionKey(groupId: string): string {
+  return `sidebar-group:${groupId}`;
+}
+
+export function createSidebarProjectGroup(
+  state: UiState,
+  group: { id: string; name: string },
+  projectKey: string | null,
+): UiState {
+  const name = group.name.trim();
+  if (name.length === 0) return state;
+  const withoutProject =
+    projectKey === null ? state : moveProjectToSidebarGroup(state, projectKey, null);
+  return {
+    ...withoutProject,
+    sidebarProjectGroups: [
+      ...withoutProject.sidebarProjectGroups,
+      { id: group.id, name, projectKeys: projectKey === null ? [] : [projectKey] },
+    ],
+  };
+}
+
+function renameSidebarProjectGroup(state: UiState, groupId: string, name: string): UiState {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return state;
+  return {
+    ...state,
+    sidebarProjectGroups: state.sidebarProjectGroups.map((group) =>
+      group.id === groupId ? { ...group, name: trimmed } : group,
+    ),
+  };
+}
+
+/** Deleting a folder returns its projects to the ungrouped list. */
+export function deleteSidebarProjectGroup(state: UiState, groupId: string): UiState {
+  const { [sidebarProjectGroupExpansionKey(groupId)]: _removed, ...projectExpandedById } =
+    state.projectExpandedById;
+  return {
+    ...state,
+    projectExpandedById,
+    sidebarProjectGroups: state.sidebarProjectGroups.filter((group) => group.id !== groupId),
+  };
+}
+
+export function moveProjectToSidebarGroup(
+  state: UiState,
+  projectKey: string,
+  groupId: string | null,
+): UiState {
+  return {
+    ...state,
+    sidebarProjectGroups: state.sidebarProjectGroups.map((group) => {
+      const projectKeys = group.projectKeys.filter((key) => key !== projectKey);
+      if (group.id === groupId) projectKeys.push(projectKey);
+      return projectKeys.length === group.projectKeys.length &&
+        projectKeys.every((key, index) => key === group.projectKeys[index])
+        ? group
+        : { ...group, projectKeys };
+    }),
+  };
+}
+
+function moveSidebarProjectGroup(state: UiState, groupId: string, direction: -1 | 1): UiState {
+  const index = state.sidebarProjectGroups.findIndex((group) => group.id === groupId);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= state.sidebarProjectGroups.length) return state;
+  const sidebarProjectGroups = [...state.sidebarProjectGroups];
+  const [group] = sidebarProjectGroups.splice(index, 1);
+  sidebarProjectGroups.splice(target, 0, group!);
+  return { ...state, sidebarProjectGroups };
+}
+
 interface UiStateStore extends UiState {
   markThreadVisited: (threadId: string, visitedAt: string) => void;
   markThreadUnread: (threadId: string, latestTurnCompletedAt: string | null | undefined) => void;
@@ -441,6 +544,11 @@ interface UiStateStore extends UiState {
     draggedProjectIds: readonly string[],
     targetProjectIds: readonly string[],
   ) => void;
+  createSidebarProjectGroup: (name: string, projectKey: string | null) => void;
+  renameSidebarProjectGroup: (groupId: string, name: string) => void;
+  deleteSidebarProjectGroup: (groupId: string) => void;
+  moveProjectToSidebarGroup: (projectKey: string, groupId: string | null) => void;
+  moveSidebarProjectGroup: (groupId: string, direction: -1 | 1) => void;
 }
 
 export const useUiStateStore = create<UiStateStore>((set) => ({
@@ -462,6 +570,15 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) =>
       reorderProjects(state, currentProjectOrder, draggedProjectIds, targetProjectIds),
     ),
+  createSidebarProjectGroup: (name, projectKey) =>
+    set((state) => createSidebarProjectGroup(state, { id: randomUUID(), name }, projectKey)),
+  renameSidebarProjectGroup: (groupId, name) =>
+    set((state) => renameSidebarProjectGroup(state, groupId, name)),
+  deleteSidebarProjectGroup: (groupId) => set((state) => deleteSidebarProjectGroup(state, groupId)),
+  moveProjectToSidebarGroup: (projectKey, groupId) =>
+    set((state) => moveProjectToSidebarGroup(state, projectKey, groupId)),
+  moveSidebarProjectGroup: (groupId, direction) =>
+    set((state) => moveSidebarProjectGroup(state, groupId, direction)),
 }));
 
 useUiStateStore.subscribe((state) => debouncedPersistState.maybeExecute(state));

@@ -2,7 +2,10 @@ import { ThreadId } from "@t3tools/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {
+  createSidebarProjectGroup,
+  deleteSidebarProjectGroup,
   legacyProjectCwdPreferenceKey,
+  moveProjectToSidebarGroup,
   markThreadUnread,
   markThreadVisited,
   parsePersistedState,
@@ -12,6 +15,7 @@ import {
   reorderProjects,
   resolveProjectExpanded,
   setProjectExpanded,
+  sidebarProjectGroupExpansionKey,
   type UiState,
 } from "./uiStateStore";
 
@@ -20,6 +24,7 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     projectExpandedById: {},
     projectOrder: [],
     sidebarProjectScopeKeys: [],
+    sidebarProjectGroups: [],
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
     defaultAdvertisedEndpointKey: null,
@@ -92,6 +97,33 @@ describe("uiStateStore pure functions", () => {
 
     expect(next.projectOrder).toEqual([keyB, keyC, keyALocal, keyARemote]);
   });
+  it("keeps each project in at most one sidebar folder", () => {
+    const work = createSidebarProjectGroup(makeUiState(), { id: "work", name: " Work " }, "p1");
+    const both = createSidebarProjectGroup(work, { id: "home", name: "Home" }, "p1");
+
+    expect(both.sidebarProjectGroups).toEqual([
+      { id: "work", name: "Work", projectKeys: [] },
+      { id: "home", name: "Home", projectKeys: ["p1"] },
+    ]);
+    expect(
+      moveProjectToSidebarGroup(both, "p1", null).sidebarProjectGroups.flatMap(
+        (group) => group.projectKeys,
+      ),
+    ).toEqual([]);
+  });
+
+  it("returns a deleted folder's projects to the ungrouped list", () => {
+    const state = setProjectExpanded(
+      createSidebarProjectGroup(makeUiState(), { id: "work", name: "Work" }, "p1"),
+      sidebarProjectGroupExpansionKey("work"),
+      false,
+    );
+
+    const next = deleteSidebarProjectGroup(state, "work");
+
+    expect(next.sidebarProjectGroups).toEqual([]);
+    expect(next.projectExpandedById).toEqual({});
+  });
 });
 
 describe("parsePersistedState", () => {
@@ -126,6 +158,7 @@ describe("parsePersistedState", () => {
       },
       defaultAdvertisedEndpointKey: "desktop-core:lan:http",
       sidebarProjectScopeKeys: [],
+      sidebarProjectGroups: [],
       pullRequestMergeMethod: "merge",
       threadChangedFilesExpandedById: {
         "environment:thread-1": {
@@ -240,10 +273,27 @@ describe("uiStateStore persistence", () => {
         },
       },
       pullRequestMergeMethod: "merge",
+      sidebarProjectGroups: [],
     });
     expect(parsePersistedState(persisted)).toEqual({
       ...state,
     });
+  });
+
+  it("drops malformed sidebar folders and duplicate project claims on load", () => {
+    expect(
+      parsePersistedState({
+        sidebarProjectGroups: [
+          { id: "a", name: "A", projectKeys: ["p1", "p2"] },
+          { id: "b", name: "B", projectKeys: ["p2", "p3"] },
+          { id: "", name: "Nameless id", projectKeys: [] },
+          { id: "c", name: "   ", projectKeys: [] },
+        ],
+      }).sidebarProjectGroups,
+    ).toEqual([
+      { id: "a", name: "A", projectKeys: ["p1", "p2"] },
+      { id: "b", name: "B", projectKeys: ["p3"] },
+    ]);
   });
 
   it("restores the sidebar project scope across reloads", () => {

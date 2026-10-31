@@ -113,7 +113,12 @@ import {
   getSidebarProjectSettingsKey,
   type SidebarProjectSnapshot,
 } from "../sidebarProjectGrouping";
-import { resolveProjectExpanded, useUiStateStore } from "../uiStateStore";
+import {
+  resolveProjectExpanded,
+  sidebarProjectGroupExpansionKey,
+  type SidebarProjectGroup,
+  useUiStateStore,
+} from "../uiStateStore";
 import {
   getThreadKeysToDeselectAfterDelete,
   useThreadSelectionStore,
@@ -179,6 +184,7 @@ import {
   filterSidebarV2VisibleThreads,
   groupSidebarThreadsByProject,
   sidebarFolderExpansionKeys,
+  sectionProjectFoldersByUserGroup,
   buildBulkTitleRegenerationContextMenuItem,
   buildBulkUnpinContextMenuItem,
   deleteSelectedThreadEntries,
@@ -263,6 +269,11 @@ import {
   SidebarProjectFolderHeader,
   sidebarFolderRowId,
 } from "./sidebar/SidebarProjectFolderHeader";
+import { SidebarProjectGroupHeader } from "./sidebar/SidebarProjectGroupHeader";
+import {
+  SidebarProjectGroupNameDialog,
+  type SidebarProjectGroupNameRequest,
+} from "./sidebar/SidebarProjectGroupNameDialog";
 import {
   SidebarDragBoundary,
   SidebarSectionHeader,
@@ -998,6 +1009,18 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const projectGroupsRef = useRef(projectGroups);
   const persistedProjectScopeKeys = useUiStateStore((store) => store.sidebarProjectScopeKeys);
   const setPersistedProjectScopeKeys = useUiStateStore((store) => store.setSidebarProjectScopeKeys);
+  const sidebarProjectGroups = useUiStateStore((store) => store.sidebarProjectGroups);
+  const sidebarExpandedById = useUiStateStore((store) => store.projectExpandedById);
+  const setSidebarExpanded = useUiStateStore((store) => store.setProjectExpanded);
+  const createSidebarProjectGroup = useUiStateStore((store) => store.createSidebarProjectGroup);
+  const renameSidebarProjectGroup = useUiStateStore((store) => store.renameSidebarProjectGroup);
+  const deleteSidebarProjectGroup = useUiStateStore((store) => store.deleteSidebarProjectGroup);
+  const moveProjectToSidebarGroup = useUiStateStore((store) => store.moveProjectToSidebarGroup);
+  const moveSidebarProjectGroup = useUiStateStore((store) => store.moveSidebarProjectGroup);
+  const [groupNameRequest, setGroupNameRequest] = useState<SidebarProjectGroupNameRequest | null>(
+    null,
+  );
+  const groupedProjectKeys = new Set(sidebarProjectGroups.flatMap((group) => group.projectKeys));
   const [projectScopeMenuState, dispatchProjectScopeMenu] = useReducer(
     reduceSidebarProjectScopeMenuState,
     { open: false, query: "" },
@@ -1252,13 +1275,42 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       : { id: "pin", label: "Pin project", icon: "pin" },
                   ]
                 : []),
+              {
+                id: "move-to-group",
+                label: "Move to folder",
+                children: [
+                  ...sidebarProjectGroups.map((userGroup) => ({
+                    id: `group:${userGroup.id}`,
+                    label: userGroup.name,
+                    checked: userGroup.projectKeys.includes(group.projectKey),
+                  })),
+                  {
+                    id: "new-group",
+                    label: "New folder…",
+                    separatorBefore: sidebarProjectGroups.length > 0,
+                  },
+                  ...(groupedProjectKeys.has(group.projectKey)
+                    ? [{ id: "ungroup", label: "Remove from folder" }]
+                    : []),
+                ],
+              },
               { id: "project-settings", label: "Project settings", icon: "settings" },
             ],
             position,
           ),
         );
-        if (clicked._tag === "Failure") return;
+        if (clicked._tag === "Failure" || clicked.value === null) return;
+        if (clicked.value.startsWith("group:")) {
+          moveProjectToSidebarGroup(group.projectKey, clicked.value.slice("group:".length));
+          return;
+        }
         switch (clicked.value) {
+          case "new-group":
+            setGroupNameRequest({ kind: "create", projectKey: group.projectKey });
+            return;
+          case "ungroup":
+            moveProjectToSidebarGroup(group.projectKey, null);
+            return;
           case "new-thread":
             startThreadInProjectFolder(group);
             return;
@@ -1276,6 +1328,65 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       })();
     },
   );
+
+  const toggleSidebarProjectGroup = useStableCallback((userGroup: SidebarProjectGroup) => {
+    const key = sidebarProjectGroupExpansionKey(userGroup.id);
+    setSidebarExpanded(key, !resolveProjectExpanded(sidebarExpandedById, [key]));
+  });
+  const handleSidebarProjectGroupContextMenu = useStableCallback(
+    (userGroup: SidebarProjectGroup, position: { x: number; y: number }) => {
+      const api = readLocalApi();
+      if (!api) return;
+      const index = sidebarProjectGroups.findIndex((candidate) => candidate.id === userGroup.id);
+      void (async () => {
+        const clicked = await settlePromise(() =>
+          api.contextMenu.show(
+            [
+              { id: "rename", label: "Rename folder" },
+              { id: "new-group", label: "New folder…" },
+              { id: "move-up", label: "Move up", disabled: index <= 0, separatorBefore: true },
+              {
+                id: "move-down",
+                label: "Move down",
+                disabled: index >= sidebarProjectGroups.length - 1,
+              },
+              { id: "delete", label: "Delete folder", destructive: true, separatorBefore: true },
+            ],
+            position,
+          ),
+        );
+        if (clicked._tag === "Failure") return;
+        switch (clicked.value) {
+          case "rename":
+            setGroupNameRequest({
+              kind: "rename",
+              groupId: userGroup.id,
+              currentName: userGroup.name,
+            });
+            return;
+          case "new-group":
+            setGroupNameRequest({ kind: "create", projectKey: null });
+            return;
+          case "move-up":
+          case "move-down":
+            moveSidebarProjectGroup(userGroup.id, clicked.value === "move-up" ? -1 : 1);
+            return;
+          case "delete":
+            deleteSidebarProjectGroup(userGroup.id);
+            return;
+        }
+      })();
+    },
+  );
+  const submitGroupName = (name: string) => {
+    if (groupNameRequest === null) return;
+    if (groupNameRequest.kind === "create") {
+      createSidebarProjectGroup(name, groupNameRequest.projectKey);
+    } else {
+      renameSidebarProjectGroup(groupNameRequest.groupId, name);
+    }
+    setGroupNameRequest(null);
+  };
 
   const {
     workingShelfEnabled,
@@ -1328,8 +1439,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           [...scopeGroups, ...projectGroups.filter((project) => project.archived)]
         : scopedProjectGroups
       : null,
-    keepEmptyFolders: (group) =>
-      scopedProjectGroups.length > 0 || (group.pinned && !group.archived),
+    // Every open project keeps its folder, so the user can file and order projects with no active threads.
+    keepEmptyFolders: (group) => scopedProjectGroups.length > 0 || !group.archived,
   });
 
   // Ranked across environments as the palette ranks them, so one
@@ -2945,6 +3056,13 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
   return (
     <>
+      {groupNameRequest !== null ? (
+        <SidebarProjectGroupNameDialog
+          request={groupNameRequest}
+          onSubmit={submitGroupName}
+          onCancel={() => setGroupNameRequest(null)}
+        />
+      ) : null}
       <ThreadContextDragGhost />
       <SidebarChromeHeader isElectron={isElectron} />
       <SidebarContent
@@ -3402,26 +3520,48 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           continue;
                         }
                         if (projectFolders !== null && item.marker === "active-placeholder") {
-                          for (const folder of projectFolders) {
-                            items.push(
-                              <SidebarProjectFolderHeader
-                                key={`project-folder:${folder.group.projectKey}`}
-                                group={folder.group}
-                                collapsed={folder.collapsed}
-                                hiddenThreads={folder.hiddenThreads}
-                                onToggle={toggleProjectFolder}
-                                onNewThread={startThreadInProjectFolder}
-                                onContextMenu={handleProjectFolderContextMenu}
-                              />,
-                            );
-                            for (const thread of folder.threads) {
+                          const sections = sectionProjectFoldersByUserGroup(
+                            projectFolders,
+                            sidebarProjectGroups,
+                          );
+                          for (const { userGroup, folders } of sections) {
+                            if (userGroup !== null) {
+                              const groupCollapsed = !resolveProjectExpanded(sidebarExpandedById, [
+                                sidebarProjectGroupExpansionKey(userGroup.id),
+                              ]);
                               items.push(
-                                renderThreadRow(
-                                  thread,
-                                  "active",
-                                  sidebarFolderRowId(folder.group.projectKey),
-                                ),
+                                <SidebarProjectGroupHeader
+                                  key={`project-group:${userGroup.id}`}
+                                  group={userGroup}
+                                  collapsed={groupCollapsed}
+                                  projectCount={folders.length}
+                                  onToggle={toggleSidebarProjectGroup}
+                                  onContextMenu={handleSidebarProjectGroupContextMenu}
+                                />,
                               );
+                              if (groupCollapsed) continue;
+                            }
+                            for (const folder of folders) {
+                              items.push(
+                                <SidebarProjectFolderHeader
+                                  key={`project-folder:${folder.group.projectKey}`}
+                                  group={folder.group}
+                                  collapsed={folder.collapsed}
+                                  hiddenThreads={folder.hiddenThreads}
+                                  onToggle={toggleProjectFolder}
+                                  onNewThread={startThreadInProjectFolder}
+                                  onContextMenu={handleProjectFolderContextMenu}
+                                />,
+                              );
+                              for (const thread of folder.threads) {
+                                items.push(
+                                  renderThreadRow(
+                                    thread,
+                                    "active",
+                                    sidebarFolderRowId(folder.group.projectKey),
+                                  ),
+                                );
+                              }
                             }
                           }
                           continue;
