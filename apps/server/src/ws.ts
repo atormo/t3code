@@ -2502,8 +2502,10 @@ export const layerWsRpc = (
             const keybindingsConfig = yield* keybindings.removeKeybindingRule(rule);
             return { keybindings: keybindingsConfig, issues: [] };
           }),
-        [WS_METHODS.notesRead]: () => notes.read,
+        [WS_METHODS.notesList]: () => notes.list,
+        [WS_METHODS.notesRead]: (input) => notes.read(input),
         [WS_METHODS.notesWrite]: (input) => notes.write(input).pipe(Effect.as({})),
+        [WS_METHODS.notesSetTabs]: (input) => notes.setTabs(input).pipe(Effect.as({})),
         [WS_METHODS.serverRunStorageCleanup]: () => storageCleanup.runNow,
         [WS_METHODS.serverGetStorageCleanupReport]: () => storageCleanup.reports,
         [WS_METHODS.serverGetDatabaseStorage]: () => databaseStorage.status,

@@ -64,8 +64,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { registerCommands, registerMenuAction } from "../shortcuts/dispatcher";
 import { resolveThreadRouteRef } from "../threadRoutes";
-import { NotesFloatingPanel } from "./notes/NotesFloatingPanel";
-import { KeepAwakeCoordinator } from "./KeepAwakeCoordinator";
+import { AppStatusBar } from "../fork/statusbar/AppStatusBar";
 
 const MACOS_TRAFFIC_LIGHTS_LEFT_INSET = "var(--desktop-window-controls-inset, 90px)";
 
@@ -447,7 +446,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   return (
     <PanelAnimationSuppressionProvider value={panelAnimationsSuppressed}>
       <SidebarProvider
-        className="h-dvh! min-h-0!"
+        className="h-[calc(100dvh-var(--fork-statusbar-height))]! min-h-0!"
         data-panel-animations={routePanelAnimationsActive ? "true" : "false"}
         defaultOpen
         style={sidebarProviderStyle}
@@ -477,10 +476,9 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
         {children}
         <BackgroundThreadAnnouncer />
         <SidebarControl />
-        <NotesFloatingPanel />
-        {isElectron ? <KeepAwakeCoordinator /> : null}
         {isElectron ? <HistorySwipeNavigation /> : null}
       </SidebarProvider>
+      <AppStatusBar />
     </PanelAnimationSuppressionProvider>
   );
 }

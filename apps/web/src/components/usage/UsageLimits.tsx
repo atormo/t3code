@@ -123,15 +123,17 @@ function WindowBar({
   readonly now: number;
 }) {
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
-  const remaining = remainingPercent(window);
+  // Fork: bars fill with quota used, so the pace mark tracks time elapsed.
+  const used = 100 - remainingPercent(window);
   const timeLeft = paceRemainingPercent(window, now);
-  const [barRef, paceMark] = usePaceMark(timeLeft);
+  const timeElapsed = timeLeft === null ? null : 100 - timeLeft;
+  const [barRef, paceMark] = usePaceMark(timeElapsed);
   const resetsIn = formatResetsIn(window, now);
   const resetsAt = window.resetsAt
     ? formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)
     : null;
-  const summary = `${window.label}: ${remaining}% left${
-    timeLeft === null ? "" : `, ${timeLeft}% of the window left`
+  const summary = `${window.label}: ${used}% used${
+    timeElapsed === null ? "" : `, ${timeElapsed}% of the window elapsed`
   }${resetsIn ? `, ${resetsIn}` : ""}`;
 
   return (
@@ -150,10 +152,10 @@ function WindowBar({
         {/* Clip both layers so the gap exposes even a translucent composer surface. */}
         <div className="absolute inset-0" style={paceMark?.gap}>
           <div className="absolute inset-x-0 inset-y-1.5 rounded-full bg-muted" />
-          {remaining > 0 ? (
+          {used > 0 ? (
             <div
               className="absolute inset-y-1.5 left-0 rounded-full"
-              style={{ width: `${remaining}%`, backgroundColor: color }}
+              style={{ width: `${used}%`, backgroundColor: color }}
             />
           ) : null}
         </div>
@@ -168,7 +170,7 @@ function WindowBar({
       <TooltipPopup side="top">
         <div className="flex flex-col gap-0.5">
           <span className="text-foreground">
-            {remaining}% left{timeLeft !== null ? ` · ${timeLeft}% of the window left` : ""}
+            {used}% used{timeElapsed !== null ? ` · ${timeElapsed}% of the window elapsed` : ""}
           </span>
           {timeLeft !== null ? (
             <span className="text-muted-foreground">The line is where even spending would be.</span>
@@ -215,7 +217,7 @@ export function LimitWindows({
             <span className="flex min-w-0 items-center gap-2 text-xs">
               <span className="truncate text-muted-foreground">{window.label}</span>
               <span className="ms-auto shrink-0 font-medium text-foreground tabular-nums">
-                {remainingPercent(window)}% left
+                {100 - remainingPercent(window)}% used
               </span>
             </span>
             <WindowBar color={color} window={window} now={now} />

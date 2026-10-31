@@ -158,7 +158,14 @@ import {
   ReviewDiffPreviewResult,
 } from "./review.ts";
 import { KeybindingsConfigError } from "./keybindings.ts";
-import { NotesError, NotesReadResult, NotesWriteInput } from "./notes.ts";
+import {
+  NotesError,
+  NotesListResult,
+  NotesReadInput,
+  NotesReadResult,
+  NotesSetTabsInput,
+  NotesWriteInput,
+} from "./notes.ts";
 import { OrchestrationSearchThreadsError } from "./threadSearch.ts";
 import {
   ProviderUploadFeedbackError,
@@ -505,8 +512,10 @@ export const WS_METHODS = {
   serverCommitDesktopUpdate: "server.commitDesktopUpdate",
   serverUpsertKeybinding: "server.upsertKeybinding",
   serverRemoveKeybinding: "server.removeKeybinding",
+  notesList: "notes.list",
   notesRead: "notes.read",
   notesWrite: "notes.write",
+  notesSetTabs: "notes.setTabs",
   serverRunStorageCleanup: "server.runStorageCleanup",
   serverGetStorageCleanupReport: "server.getStorageCleanupReport",
   serverGetDatabaseStorage: "server.getDatabaseStorage",
@@ -627,8 +636,20 @@ const WsServerRemoveKeybindingRpc = Rpc.make(WS_METHODS.serverRemoveKeybinding, 
   error: Schema.Union([KeybindingsConfigError, EnvironmentAuthorizationError]),
 });
 
-const WsNotesReadRpc = Rpc.make(WS_METHODS.notesRead, {
+const WsNotesListRpc = Rpc.make(WS_METHODS.notesList, {
   payload: Schema.Struct({}),
+  success: NotesListResult,
+  error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
+});
+
+const WsNotesSetTabsRpc = Rpc.make(WS_METHODS.notesSetTabs, {
+  payload: NotesSetTabsInput,
+  success: Schema.Struct({}),
+  error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
+});
+
+const WsNotesReadRpc = Rpc.make(WS_METHODS.notesRead, {
+  payload: NotesReadInput,
   success: NotesReadResult,
   error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
 });
@@ -2010,8 +2031,10 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerCommitDesktopUpdateRpc,
   WsServerUpsertKeybindingRpc,
   WsServerRemoveKeybindingRpc,
+  WsNotesListRpc,
   WsNotesReadRpc,
   WsNotesWriteRpc,
+  WsNotesSetTabsRpc,
   WsServerRunStorageCleanupRpc,
   WsServerGetStorageCleanupReportRpc,
   WsServerGetDatabaseStorageRpc,

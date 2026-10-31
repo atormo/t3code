@@ -1,0 +1,16 @@
+/*
+ * The status bar sits under the whole window. Upstream lays the sidebar and the main
+ * panes out at full viewport height, so these unlayered rules shorten them by the bar's
+ * height without editing upstream components.
+ */
+:root {
+  --fork-statusbar-height: 1.75rem;
+}
+[data-slot="sidebar-container"] {
+  bottom: var(--fork-statusbar-height);
+  height: auto;
+}
+[data-slot="sidebar-inset"] {
+  height: 100%;
+  max-height: calc(100dvh - var(--fork-statusbar-height));
+}
