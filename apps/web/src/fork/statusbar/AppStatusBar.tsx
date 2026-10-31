@@ -1,6 +1,6 @@
 import type { NoteTab } from "@t3tools/contracts";
 import { NotebookPenIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/button";
 import { isElectron } from "../../env";
@@ -19,6 +19,23 @@ export function AppStatusBar() {
   const listNotes = useAtomCommand(serverEnvironment.listNotes, { reportFailure: false });
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteTabs, setNoteTabs] = useState<readonly NoteTab[] | null>(null);
+  const notesRef = useRef<HTMLDivElement>(null);
+  const notesButtonRef = useRef<HTMLButtonElement>(null);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- listens for clicks anywhere in the window while Notes is open
+  useEffect(() => {
+    if (!notesOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (!target || notesRef.current?.contains(target)) return;
+      if (notesButtonRef.current?.contains(target)) return;
+      // Menus and dialogs Notes opens render outside the panel.
+      if (target.closest('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      setNotesOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick, true);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick, true);
+  }, [notesOpen]);
 
   const openNotes = () => {
     setNotesOpen(true);
@@ -38,6 +55,7 @@ export function AppStatusBar() {
       {isElectron ? <KeepAwakeItem /> : null}
       <div className="flex-1" />
       <Button
+        ref={notesButtonRef}
         size="micro"
         variant={notesOpen ? "secondary" : "ghost-muted"}
         aria-expanded={notesOpen}
@@ -48,7 +66,7 @@ export function AppStatusBar() {
         <span>Notes</span>
       </Button>
       {notesOpen && environmentId !== null && noteTabs !== null ? (
-        <div className="absolute right-2 bottom-[calc(100%+0.5rem)]">
+        <div ref={notesRef} className="absolute right-2 bottom-[calc(100%+0.5rem)]">
           <NotesPanel
             environmentId={environmentId}
             tabs={noteTabs}
