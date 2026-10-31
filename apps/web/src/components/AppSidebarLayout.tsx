@@ -65,6 +65,7 @@ import { appAtomRegistry } from "../rpc/atomRegistry";
 import { registerCommands, registerMenuAction } from "../shortcuts/dispatcher";
 import { resolveThreadRouteRef } from "../threadRoutes";
 import { NotesFloatingPanel } from "./notes/NotesFloatingPanel";
+import { KeepAwakeCoordinator } from "./KeepAwakeCoordinator";
 
 const MACOS_TRAFFIC_LIGHTS_LEFT_INSET = "var(--desktop-window-controls-inset, 90px)";
 
@@ -477,6 +478,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
         <BackgroundThreadAnnouncer />
         <SidebarControl />
         <NotesFloatingPanel />
+        {isElectron ? <KeepAwakeCoordinator /> : null}
         {isElectron ? <HistorySwipeNavigation /> : null}
       </SidebarProvider>
     </PanelAnimationSuppressionProvider>

@@ -450,6 +450,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["beta folders project tree legacy old classic sidebar"],
   },
   {
+    id: "keep-awake",
+    title: "Keep awake while agents work",
+    to: "/settings/labs",
+    searchTerms: ["sleep caffeinate power suspend agent running mac desktop"],
+  },
+  {
     id: "boring-sidebar-multiline",
     title: "Two-line folder rows",
     to: "/settings/labs",

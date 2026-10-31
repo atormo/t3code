@@ -18,6 +18,7 @@ export function LabsSettingsPanel() {
       <SettingsSection id="beta" title="Beta">
         <BoringSidebarRow />
         <BoringSidebarMultilineRow />
+        {window.desktopBridge ? <KeepAwakeRow /> : null}
         {/* Clerk is only mounted when this build has T3 Connect. */}
         {hasCloudPublicConfig() ? <GuestLinksRowWithSignIn /> : <GuestLinksRow />}
         <LinkedEnvironmentsRow />
@@ -63,6 +64,26 @@ function BoringSidebarMultilineRow() {
             updateSettings({ boringSidebarMultilineRows: Boolean(checked) })
           }
           aria-label="Two-line folder rows"
+        />
+      }
+    />
+  );
+}
+
+function KeepAwakeRow() {
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  return (
+    <SettingsRow
+      {...searchableSetting("keep-awake")}
+      description="Stop this computer from sleeping while any agent is working. It can sleep again once they finish."
+      control={
+        <Switch
+          checked={settings.keepAwakeWhileAgentsWork}
+          onCheckedChange={(checked) =>
+            updateSettings({ keepAwakeWhileAgentsWork: Boolean(checked) })
+          }
+          aria-label="Keep awake while agents work"
         />
       }
     />
