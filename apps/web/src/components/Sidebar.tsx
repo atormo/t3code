@@ -271,6 +271,15 @@ import {
 } from "./sidebar/SidebarProjectFolderHeader";
 import { SidebarProjectGroupHeader } from "./sidebar/SidebarProjectGroupHeader";
 import {
+  isParkedGroup,
+  isProjectInSpace,
+  visibleSidebarGroups,
+} from "../fork/sidebar/projectOrganization";
+import { SidebarSpaceTabs } from "../fork/sidebar/SidebarSpaceTabs";
+import { moveProjectToGroup } from "../fork/sidebar/sidebarOrganizationActions";
+import { useSidebarSpacesStore } from "../fork/sidebar/sidebarSpacesStore";
+import { useSidebarProjectDrag } from "../fork/sidebar/useSidebarProjectDrag";
+import {
   SidebarProjectGroupNameDialog,
   type SidebarProjectGroupNameRequest,
 } from "./sidebar/SidebarProjectGroupNameDialog";
@@ -1009,13 +1018,17 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const projectGroupsRef = useRef(projectGroups);
   const persistedProjectScopeKeys = useUiStateStore((store) => store.sidebarProjectScopeKeys);
   const setPersistedProjectScopeKeys = useUiStateStore((store) => store.setSidebarProjectScopeKeys);
-  const sidebarProjectGroups = useUiStateStore((store) => store.sidebarProjectGroups);
+  const activeSpaceId = useSidebarSpacesStore((store) => store.activeSpaceId);
+  const sidebarSpaces = useSidebarSpacesStore((store) => store.spaces);
+  const sidebarProjectGroups = visibleSidebarGroups(
+    useUiStateStore((store) => store.sidebarProjectGroups),
+    activeSpaceId,
+  );
   const sidebarExpandedById = useUiStateStore((store) => store.projectExpandedById);
   const setSidebarExpanded = useUiStateStore((store) => store.setProjectExpanded);
   const createSidebarProjectGroup = useUiStateStore((store) => store.createSidebarProjectGroup);
   const renameSidebarProjectGroup = useUiStateStore((store) => store.renameSidebarProjectGroup);
   const deleteSidebarProjectGroup = useUiStateStore((store) => store.deleteSidebarProjectGroup);
-  const moveProjectToSidebarGroup = useUiStateStore((store) => store.moveProjectToSidebarGroup);
   const moveSidebarProjectGroup = useUiStateStore((store) => store.moveSidebarProjectGroup);
   const [groupNameRequest, setGroupNameRequest] = useState<SidebarProjectGroupNameRequest | null>(
     null,
@@ -1301,7 +1314,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         );
         if (clicked._tag === "Failure" || clicked.value === null) return;
         if (clicked.value.startsWith("group:")) {
-          moveProjectToSidebarGroup(group.projectKey, clicked.value.slice("group:".length));
+          moveProjectToGroup(group.projectKey, clicked.value.slice("group:".length));
           return;
         }
         switch (clicked.value) {
@@ -1309,7 +1322,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             setGroupNameRequest({ kind: "create", projectKey: group.projectKey });
             return;
           case "ungroup":
-            moveProjectToSidebarGroup(group.projectKey, null);
+            moveProjectToGroup(group.projectKey, null);
             return;
           case "new-thread":
             startThreadInProjectFolder(group);
@@ -1331,12 +1344,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
 
   const toggleSidebarProjectGroup = useStableCallback((userGroup: SidebarProjectGroup) => {
     const key = sidebarProjectGroupExpansionKey(userGroup.id);
-    setSidebarExpanded(key, !resolveProjectExpanded(sidebarExpandedById, [key]));
+    const expanded = isParkedGroup(userGroup)
+      ? sidebarExpandedById[key] === true
+      : resolveProjectExpanded(sidebarExpandedById, [key]);
+    setSidebarExpanded(key, !expanded);
   });
   const handleSidebarProjectGroupContextMenu = useStableCallback(
     (userGroup: SidebarProjectGroup, position: { x: number; y: number }) => {
       const api = readLocalApi();
-      if (!api) return;
+      if (!api || isParkedGroup(userGroup)) return;
       const index = sidebarProjectGroups.findIndex((candidate) => candidate.id === userGroup.id);
       void (async () => {
         const clicked = await settlePromise(() =>
@@ -1441,6 +1457,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       : null,
     // Every open project keeps its folder, so the user can file and order projects with no active threads.
     keepEmptyFolders: (group) => scopedProjectGroups.length > 0 || !group.archived,
+  });
+  const spaceFolders =
+    projectFolders?.filter((folder) =>
+      isProjectInSpace(folder.group.projectKey, sidebarSpaces, activeSpaceId),
+    ) ?? null;
+  const projectDrag = useSidebarProjectDrag({
+    folders: spaceFolders,
+    groups: sidebarProjectGroups,
   });
 
   // Ranked across environments as the palette ranks them, so one
@@ -3353,6 +3377,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               </p>
             )
           ) : null}
+          {!isSearchingThreads && spaceFolders !== null ? (
+            <SidebarSpaceTabs
+              visibleProjectKeys={spaceFolders.map((folder) => folder.group.projectKey)}
+              tabDragProps={projectDrag.tabDragProps}
+            />
+          ) : null}
           {!isSearchingThreads ? (
             <TooltipProvider
               key="sidebar-thread-tooltips-150"
@@ -3372,6 +3402,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 <SortableContext items={sortableIds} strategy={sidebarSortingStrategy}>
                   <ul
                     {...SIDEBAR_TREE_PROPS}
+                    {...projectDrag.importDropProps}
                     ref={attachTreeRef}
                     className={cn(
                       "relative flex flex-col gap-px",
@@ -3521,14 +3552,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                         }
                         if (projectFolders !== null && item.marker === "active-placeholder") {
                           const sections = sectionProjectFoldersByUserGroup(
-                            projectFolders,
+                            spaceFolders ?? [],
                             sidebarProjectGroups,
                           );
                           for (const { userGroup, folders } of sections) {
                             if (userGroup !== null) {
-                              const groupCollapsed = !resolveProjectExpanded(sidebarExpandedById, [
-                                sidebarProjectGroupExpansionKey(userGroup.id),
-                              ]);
+                              const groupKey = sidebarProjectGroupExpansionKey(userGroup.id);
+                              // Parked starts closed; other folders start open.
+                              const groupCollapsed = isParkedGroup(userGroup)
+                                ? sidebarExpandedById[groupKey] !== true
+                                : !resolveProjectExpanded(sidebarExpandedById, [groupKey]);
                               items.push(
                                 <SidebarProjectGroupHeader
                                   key={`project-group:${userGroup.id}`}
@@ -3537,6 +3570,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                   projectCount={folders.length}
                                   onToggle={toggleSidebarProjectGroup}
                                   onContextMenu={handleSidebarProjectGroupContextMenu}
+                                  dragProps={projectDrag.groupRowProps(userGroup)}
                                 />,
                               );
                               if (groupCollapsed) continue;
@@ -3551,6 +3585,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                   onToggle={toggleProjectFolder}
                                   onNewThread={startThreadInProjectFolder}
                                   onContextMenu={handleProjectFolderContextMenu}
+                                  dragProps={projectDrag.projectRowProps(folder.group)}
                                 />,
                               );
                               for (const thread of folder.threads) {

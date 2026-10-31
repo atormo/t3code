@@ -20,7 +20,9 @@ vp test run \
   apps/web/src/uiStateStore.test.ts \
   apps/web/src/components/Sidebar.logic.test.ts \
   apps/server/src/ws.test.ts \
-  apps/web/src/fork/statusbar/KeepAwake.browser.test.tsx
+  apps/web/src/fork/statusbar/KeepAwake.browser.test.tsx \
+  apps/web/src/fork/sidebar/projectOrganization.test.ts \
+  apps/web/src/components/files/FilePreviewPanel.browser.test.tsx
 
 echo "==> Lint fork code"
 vp lint apps/web/src/fork apps/server/src/notes apps/desktop/src/ipc/methods/keepAwake.ts

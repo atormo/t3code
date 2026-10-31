@@ -19,8 +19,12 @@ export function SidebarProjectGroupNameDialog(props: {
   request: SidebarProjectGroupNameRequest;
   onSubmit: (name: string) => void;
   onCancel: () => void;
+  /** What is being named, for a dialog reused outside folders. */
+  noun?: string;
 }) {
   const { request } = props;
+  const noun = props.noun ?? "folder";
+  const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
   const formId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(request.kind === "rename" ? request.currentName : "");
@@ -35,7 +39,7 @@ export function SidebarProjectGroupNameDialog(props: {
     >
       <DialogPopup className="max-w-sm" initialFocus={inputRef}>
         <DialogHeader>
-          <DialogTitle>{request.kind === "create" ? "New folder" : "Rename folder"}</DialogTitle>
+          <DialogTitle>{request.kind === "create" ? `New ${noun}` : `Rename ${noun}`}</DialogTitle>
         </DialogHeader>
         <DialogPanel scrollFade={false}>
           <form
@@ -47,10 +51,10 @@ export function SidebarProjectGroupNameDialog(props: {
           >
             <Input
               ref={inputRef}
-              aria-label="Folder name"
+              aria-label={`${Noun} name`}
               autoComplete="off"
               name="sidebar-project-group-name"
-              placeholder="Folder name"
+              placeholder={`${Noun} name`}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />

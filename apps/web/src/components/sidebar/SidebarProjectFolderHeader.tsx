@@ -10,6 +10,7 @@ import { resolveSidebarFolderDot, resolveThreadLastVisitedAt } from "../Sidebar.
 import { ProjectFavicon } from "../ProjectFavicon";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import type { SidebarRowDragProps } from "../../fork/sidebar/useSidebarProjectDrag";
 
 const FOLDER_DOT_CLASS_NAME = {
   attention: "bg-warning",
@@ -42,6 +43,7 @@ export const SidebarProjectFolderHeader = memo(function SidebarProjectFolderHead
   onToggle: (group: SidebarProjectSnapshot) => void;
   onNewThread: (group: SidebarProjectSnapshot) => void;
   onContextMenu: (group: SidebarProjectSnapshot, position: { x: number; y: number }) => void;
+  dragProps?: SidebarRowDragProps;
 }) {
   const { group, collapsed, hiddenThreads } = props;
   const rowId = sidebarFolderRowId(group.projectKey);
@@ -61,6 +63,7 @@ export const SidebarProjectFolderHeader = memo(function SidebarProjectFolderHead
     : null;
   return (
     <li
+      {...props.dragProps}
       data-testid="sidebar-project-folder"
       className="group/project-folder relative mt-2 list-none first:mt-0"
     >

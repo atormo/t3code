@@ -1,7 +1,9 @@
-import { ChevronDownIcon, FolderIcon, FolderOpenIcon } from "lucide-react";
+import { ArchiveIcon, ChevronDownIcon, FolderIcon, FolderOpenIcon } from "lucide-react";
 import { memo } from "react";
 
 import { cn } from "~/lib/utils";
+import { isParkedGroup } from "../../fork/sidebar/projectOrganization";
+import type { SidebarRowDragProps } from "../../fork/sidebar/useSidebarProjectDrag";
 import type { SidebarProjectGroup } from "../../uiStateStore";
 
 /**
@@ -14,13 +16,19 @@ export const SidebarProjectGroupHeader = memo(function SidebarProjectGroupHeader
   projectCount: number;
   onToggle: (group: SidebarProjectGroup) => void;
   onContextMenu: (group: SidebarProjectGroup, position: { x: number; y: number }) => void;
+  dragProps?: SidebarRowDragProps;
 }) {
   const { group, collapsed, projectCount } = props;
-  const Icon = collapsed ? FolderIcon : FolderOpenIcon;
+  const parked = isParkedGroup(group);
+  const Icon = parked ? ArchiveIcon : collapsed ? FolderIcon : FolderOpenIcon;
   return (
     <li
+      {...props.dragProps}
       data-testid="sidebar-project-group"
-      className="group/project-group relative mt-3 list-none first:mt-0"
+      className={cn(
+        "group/project-group relative mt-3 list-none first:mt-0",
+        parked && "mt-5 border-t border-sidebar-border pt-2 opacity-70",
+      )}
     >
       <button
         type="button"

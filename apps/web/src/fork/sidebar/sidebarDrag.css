@@ -1,0 +1,22 @@
+/* Drop marks for dragging projects and folders in the sidebar. */
+[data-fork-drop="before"]::before,
+[data-fork-drop="after"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.5rem;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary);
+  pointer-events: none;
+}
+[data-fork-drop="before"]::before {
+  top: -2px;
+}
+[data-fork-drop="after"]::after {
+  bottom: -2px;
+}
+[data-fork-drop="into"] > button,
+button[data-fork-drop="into"] {
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
