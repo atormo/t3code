@@ -109,6 +109,7 @@ import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import * as ServerConfigModule from "./config.ts";
 import * as Keybindings from "./keybindings.ts";
+import * as Notes from "./notes/Notes.ts";
 import * as ServerSettings from "./serverSettings.ts";
 
 import * as EventStore from "./orchestration-v2/EventStore.ts";
@@ -545,6 +546,7 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(TerminalManager.TerminalManager)({}),
   Layer.mock(ThreadLaunchService.ThreadLaunchService)({}),
   Layer.mock(ThreadManagement.ThreadManagementService)({}),
+  Layer.mock(Notes.Notes)({}),
   Layer.mock(ThreadSearch.ThreadSearch)({}),
   Layer.mock(UsageService.UsageService)({}),
   Layer.mock(VcsProvisioningService.VcsProvisioningService)({}),

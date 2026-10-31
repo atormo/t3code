@@ -158,6 +158,7 @@ import {
   ReviewDiffPreviewResult,
 } from "./review.ts";
 import { KeybindingsConfigError } from "./keybindings.ts";
+import { NotesError, NotesReadResult, NotesWriteInput } from "./notes.ts";
 import { OrchestrationSearchThreadsError } from "./threadSearch.ts";
 import {
   ProviderUploadFeedbackError,
@@ -504,6 +505,8 @@ export const WS_METHODS = {
   serverCommitDesktopUpdate: "server.commitDesktopUpdate",
   serverUpsertKeybinding: "server.upsertKeybinding",
   serverRemoveKeybinding: "server.removeKeybinding",
+  notesRead: "notes.read",
+  notesWrite: "notes.write",
   serverRunStorageCleanup: "server.runStorageCleanup",
   serverGetStorageCleanupReport: "server.getStorageCleanupReport",
   serverGetDatabaseStorage: "server.getDatabaseStorage",
@@ -622,6 +625,18 @@ const WsServerRemoveKeybindingRpc = Rpc.make(WS_METHODS.serverRemoveKeybinding, 
   payload: ServerRemoveKeybindingInput,
   success: ServerRemoveKeybindingResult,
   error: Schema.Union([KeybindingsConfigError, EnvironmentAuthorizationError]),
+});
+
+const WsNotesReadRpc = Rpc.make(WS_METHODS.notesRead, {
+  payload: Schema.Struct({}),
+  success: NotesReadResult,
+  error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
+});
+
+const WsNotesWriteRpc = Rpc.make(WS_METHODS.notesWrite, {
+  payload: NotesWriteInput,
+  success: Schema.Struct({}),
+  error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
 });
 
 const WsServerProbeRpc = Rpc.make(WS_METHODS.serverProbe, {
@@ -1995,6 +2010,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerCommitDesktopUpdateRpc,
   WsServerUpsertKeybindingRpc,
   WsServerRemoveKeybindingRpc,
+  WsNotesReadRpc,
+  WsNotesWriteRpc,
   WsServerRunStorageCleanupRpc,
   WsServerGetStorageCleanupReportRpc,
   WsServerGetDatabaseStorageRpc,

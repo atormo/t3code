@@ -1419,6 +1419,14 @@ export function createServerEnvironmentAtoms<R, E>(
       scheduler: configScheduler,
       concurrency: configConcurrency,
     }),
+    readNotes: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:notes:read",
+      tag: WS_METHODS.notesRead,
+    }),
+    writeNotes: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:notes:write",
+      tag: WS_METHODS.notesWrite,
+    }),
     updateSettings,
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {
