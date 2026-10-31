@@ -4,14 +4,12 @@ import { useEffect } from "react";
 
 import { Button } from "../../components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
-import { useUpdateScopedSettings } from "../../components/settings/useScopedSettings";
-import { useClientSettings } from "../../hooks/useSettings";
+import { updateClientSettings, useClientSettings } from "../../hooks/useSettings";
 import { useThreadShells } from "../../state/entities";
 
 /** Holds off sleep while any agent works, and shows whether it is doing so right now. */
 export function KeepAwakeItem() {
   const enabled = useClientSettings((settings) => settings.keepAwakeWhileAgentsWork);
-  const updateSettings = useUpdateScopedSettings();
   const workingCount = useThreadShells().filter(isThreadWorking).length;
   const holding = enabled && workingCount > 0;
 
@@ -35,7 +33,7 @@ export function KeepAwakeItem() {
             variant={holding ? "secondary" : "ghost-muted"}
             aria-label={label}
             aria-pressed={enabled}
-            onClick={() => updateSettings({ keepAwakeWhileAgentsWork: !enabled })}
+            onClick={() => void updateClientSettings({ keepAwakeWhileAgentsWork: !enabled })}
           />
         }
       >
