@@ -7,6 +7,7 @@ import {
   deleteSpace,
   ensureParkedGroup,
   isProjectInSpace,
+  moveSpaceToIndexOf,
   placeGroupBefore,
   visibleSidebarGroups,
 } from "./projectOrganization";
@@ -37,6 +38,27 @@ describe("sidebar spaces", () => {
       "parked:home",
     ]);
     expect(visibleSidebarGroups([], null).map((g) => g.id)).toEqual(["parked"]);
+  });
+
+  it("shows every folder and one Parked with all parked projects in the all-projects view", () => {
+    const groups = [
+      { ...group("parked:work", "work"), projectKeys: ["p1"] },
+      { ...group("parked:home", "home"), projectKeys: ["p2"] },
+      group("a", "work"),
+      group("b", "home"),
+    ];
+    const visible = visibleSidebarGroups(groups, null);
+    expect(visible.map((g) => g.id)).toEqual(["a", "b", "parked"]);
+    expect(visible.at(-1)?.projectKeys).toEqual(["p1", "p2"]);
+    expect(isProjectInSpace("p1", [{ id: "work", name: "Work", projectKeys: ["p1"] }], null)).toBe(
+      true,
+    );
+  });
+
+  it("moves a space tab to another tab's place", () => {
+    const spaces = ["a", "b", "c"].map((id) => ({ id, name: id, projectKeys: [] }));
+    expect(moveSpaceToIndexOf(spaces, "a", "c").map((s) => s.id)).toEqual(["b", "c", "a"]);
+    expect(moveSpaceToIndexOf(spaces, "c", "a").map((s) => s.id)).toEqual(["c", "a", "b"]);
   });
 
   it("creates the Parked folder a move targets, in its space", () => {

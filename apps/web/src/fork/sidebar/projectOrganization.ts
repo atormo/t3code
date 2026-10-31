@@ -8,7 +8,7 @@ export interface SidebarSpace {
 }
 
 /** Each space, and the no-space view, has its own Parked folder for projects on hold. It sits last. */
-function parkedGroupId(spaceId: string | null): string {
+export function parkedGroupId(spaceId: string | null): string {
   return spaceId === null ? "parked" : `parked:${spaceId}`;
 }
 
@@ -34,24 +34,31 @@ let lastSpaceId: string | null = null;
 let lastVisible: SidebarProjectGroup[] = [];
 
 /**
- * The folders the active space shows: its own, any not filed in a space yet, and its Parked
- * folder last. Same inputs, same array, so memoized rows stay put.
+ * The folders a space shows: its own, any not filed in a space yet, and its Parked folder last.
+ * The all-projects view (no active space) shows every folder and one Parked holding all parked
+ * projects. Same inputs, same array, so memoized rows stay put.
  */
 export function visibleSidebarGroups(
   groups: readonly SidebarProjectGroup[],
   activeSpaceId: string | null,
 ): SidebarProjectGroup[] {
   if (groups === lastGroups && activeSpaceId === lastSpaceId) return lastVisible;
-  const parkedId = parkedGroupId(activeSpaceId);
   lastGroups = groups;
   lastSpaceId = activeSpaceId;
-  lastVisible = [
-    ...groups.filter(
-      (group) =>
-        !isParkedGroup(group) && (group.spaceId === undefined || group.spaceId === activeSpaceId),
-    ),
-    groups.find((group) => group.id === parkedId) ?? parkedGroup(activeSpaceId),
-  ];
+  const folders = groups.filter(
+    (group) =>
+      !isParkedGroup(group) &&
+      (activeSpaceId === null || group.spaceId === undefined || group.spaceId === activeSpaceId),
+  );
+  const parked =
+    activeSpaceId === null
+      ? {
+          ...parkedGroup(null),
+          projectKeys: groups.filter(isParkedGroup).flatMap((group) => group.projectKeys),
+        }
+      : (groups.find((group) => group.id === parkedGroupId(activeSpaceId)) ??
+        parkedGroup(activeSpaceId));
+  lastVisible = [...folders, parked];
   return lastVisible;
 }
 
@@ -80,12 +87,28 @@ export function placeGroupBefore(
   return [...rest.slice(0, index), moving, ...rest.slice(index)];
 }
 
+/** Moves a space tab to where another one is, the way dragging a browser tab does. */
+export function moveSpaceToIndexOf(
+  spaces: readonly SidebarSpace[],
+  spaceId: string,
+  targetSpaceId: string,
+): readonly SidebarSpace[] {
+  const from = spaces.findIndex((space) => space.id === spaceId);
+  const to = spaces.findIndex((space) => space.id === targetSpaceId);
+  if (from < 0 || to < 0 || from === to) return spaces;
+  const next = [...spaces];
+  const [moving] = next.splice(from, 1);
+  next.splice(to, 0, moving!);
+  return next;
+}
+
 /** A project shows in the active space when it belongs there or has not been filed in any space. */
 export function isProjectInSpace(
   projectKey: string,
   spaces: readonly SidebarSpace[],
   activeSpaceId: string | null,
 ): boolean {
+  if (activeSpaceId === null) return true;
   const owner = spaces.find((space) => space.projectKeys.includes(projectKey));
   return owner === undefined || owner.id === activeSpaceId;
 }

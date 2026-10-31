@@ -8,7 +8,8 @@ interface SidebarSpacesState {
   spaces: SidebarSpace[];
   activeSpaceId: string | null;
   setSpaces: (spaces: SidebarSpace[], activeSpaceId: string | null) => void;
-  setActiveSpace: (spaceId: string) => void;
+  /** null is the all-projects view. */
+  setActiveSpace: (spaceId: string | null) => void;
 }
 
 /** Sidebar spaces (tabs). Cross-store moves live in sidebarOrganizationActions. */

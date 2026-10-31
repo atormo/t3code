@@ -18,13 +18,16 @@ import {
   moveGroupToSpace,
   moveProjectToGroup,
   moveProjectToSpace,
+  moveSpace,
 } from "./sidebarOrganizationActions";
+import { useSidebarSpacesStore } from "./sidebarSpacesStore";
 import "./sidebarDrag.css";
 
 type DropMark = "before" | "after" | "into";
 type Dragged =
   | { readonly kind: "project"; readonly projectKey: string }
-  | { readonly kind: "group"; readonly groupId: string };
+  | { readonly kind: "group"; readonly groupId: string }
+  | { readonly kind: "space"; readonly spaceId: string };
 
 const DRAG_TYPE = "application/x-t3-fork-sidebar";
 
@@ -151,7 +154,7 @@ export function useSidebarProjectDrag(input: {
       onDragLeave: leave,
       onDrop: (event) => {
         const item = dragged.current;
-        if (!item) return;
+        if (!item || item.kind === "space") return;
         event.preventDefault();
         event.stopPropagation();
         if (item.kind === "project") moveProjectToGroup(item.projectKey, group.id);
@@ -164,13 +167,28 @@ export function useSidebarProjectDrag(input: {
     };
   };
 
-  /** For a space tab: a project or folder dropped on it is filed in that space. */
-  const tabDragProps = (spaceId: string) => {
+  /**
+   * For a space tab: a project or folder dropped on it is filed in that space, and a tab
+   * dropped on another takes its place.
+   */
+  const tabDragProps = (spaceId: string): SidebarRowDragProps => {
     const id = `space:${spaceId}`;
+    const spaceIds = useSidebarSpacesStore.getState().spaces.map((space) => space.id);
     return {
-      ...(target?.id === id ? { "data-fork-drop": "into" as const } : {}),
+      draggable: true,
+      ...(target?.id === id ? { "data-fork-drop": target.mark } : {}),
+      onDragStart: (event) => start(event, { kind: "space", spaceId }),
       onDragOver: (event: DragEvent<HTMLElement>) => {
-        if (dragged.current) mark(event, id, "into");
+        const item = dragged.current;
+        if (!item) return;
+        if (item.kind !== "space") mark(event, id, "into");
+        else if (item.spaceId !== spaceId) {
+          mark(
+            event,
+            id,
+            spaceIds.indexOf(item.spaceId) < spaceIds.indexOf(spaceId) ? "after" : "before",
+          );
+        }
       },
       onDragLeave: leave,
       onDrop: (event: DragEvent<HTMLElement>) => {
@@ -179,7 +197,8 @@ export function useSidebarProjectDrag(input: {
         event.preventDefault();
         event.stopPropagation();
         if (item.kind === "project") moveProjectToSpace(item.projectKey, spaceId);
-        else moveGroupToSpace(item.groupId, spaceId);
+        else if (item.kind === "group") moveGroupToSpace(item.groupId, spaceId);
+        else moveSpace(item.spaceId, spaceId);
         end();
       },
       onDragEnd: end,

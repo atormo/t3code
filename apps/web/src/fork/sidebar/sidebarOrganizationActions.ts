@@ -4,13 +4,21 @@ import {
   assignProjectToSpace,
   createSpace,
   deleteSpace,
+  moveSpaceToIndexOf,
+  parkedGroupId,
   spaceOfParkedGroupId,
 } from "./projectOrganization";
 import { useSidebarSpacesStore } from "./sidebarSpacesStore";
 
 /** Moves a project into a folder; a folder in a space files the project in that space too. */
-export function moveProjectToGroup(projectKey: string, groupId: string | null) {
+export function moveProjectToGroup(projectKey: string, targetGroupId: string | null) {
   const ui = useUiStateStore.getState();
+  // The all-projects view shows one Parked; a project parked there goes to its own space's.
+  const owner = useSidebarSpacesStore
+    .getState()
+    .spaces.find((space) => space.projectKeys.includes(projectKey));
+  const groupId =
+    targetGroupId === parkedGroupId(null) && owner ? parkedGroupId(owner.id) : targetGroupId;
   ui.moveProjectToSidebarGroup(projectKey, groupId);
   if (groupId === null) return;
   const group = ui.sidebarProjectGroups.find((candidate) => candidate.id === groupId);
@@ -78,5 +86,13 @@ export function removeSpace(spaceId: string) {
   spaces.setSpaces(
     next.spaces,
     spaces.activeSpaceId === spaceId ? (next.spaces[0]?.id ?? null) : spaces.activeSpaceId,
+  );
+}
+
+export function moveSpace(spaceId: string, targetSpaceId: string) {
+  const spaces = useSidebarSpacesStore.getState();
+  spaces.setSpaces(
+    [...moveSpaceToIndexOf(spaces.spaces, spaceId, targetSpaceId)],
+    spaces.activeSpaceId,
   );
 }

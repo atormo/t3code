@@ -843,7 +843,7 @@ describe("rightPanelStore", () => {
     );
   });
 
-  it("replaces the standalone explorer with peer file surfaces", () => {
+  it("keeps the Files tab beside opened files and returns to it when one closes", () => {
     useRightPanelStore.getState().open(refA, "files");
     useRightPanelStore.getState().openFile(refA, "src/index.ts");
     useRightPanelStore.getState().openFile(refA, "src/index.ts");
@@ -853,6 +853,7 @@ describe("rightPanelStore", () => {
       isOpen: true,
       activeSurfaceId: "file:README.md",
       surfaces: [
+        { id: "files", kind: "files" },
         {
           id: "file:src/index.ts",
           kind: "file",
@@ -869,6 +870,10 @@ describe("rightPanelStore", () => {
         },
       ],
     });
+    useRightPanelStore.getState().closeSurface(refA, "file:README.md");
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).activeSurfaceId,
+    ).toBe("files");
   });
 
   it.each([

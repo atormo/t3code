@@ -784,9 +784,8 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             const relativePath = /^[A-Za-z]:\/+$/.test(requestedPath)
               ? requestedPath
               : requestedPath.replace(/\/+$/, "") || requestedPath;
-            const withoutStandaloneExplorer = current.surfaces.filter(
-              (surface) => surface.kind !== "files",
-            );
+            // Fork: the Files tab stays beside opened files, so closing a file returns to the list.
+            const withoutStandaloneExplorer = current.surfaces;
             const surfaceId = `file:${relativePath}` as const;
             const existing = withoutStandaloneExplorer.find(
               (surface): surface is Extract<RightPanelSurface, { kind: "file" }> =>
@@ -948,7 +947,14 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             if (current.activeSurfaceId !== surfaceId) {
               return next;
             }
-            const fallback = surfaces[Math.min(index, surfaces.length - 1)] ?? null;
+            // Fork: closing a file goes back to the Files list when it is open.
+            const closed = current.surfaces[index]!;
+            const fallback =
+              (closed.kind === "file" && !closed.attachment
+                ? surfaces.find((surface) => surface.kind === "files")
+                : undefined) ??
+              surfaces[Math.min(index, surfaces.length - 1)] ??
+              null;
             return {
               ...next,
               activeSurfaceId: fallback?.id ?? null,

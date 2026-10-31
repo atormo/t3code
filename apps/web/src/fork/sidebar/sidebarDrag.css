@@ -20,3 +20,27 @@ button[data-fork-drop="into"] {
   background: color-mix(in oklab, var(--primary) 14%, transparent);
   box-shadow: inset 0 0 0 1px var(--primary);
 }
+
+/* Space tabs scroll sideways with a trackpad or wheel, without a visible scrollbar. */
+[data-fork-space-tabs] {
+  scrollbar-width: none;
+}
+[data-fork-space-tabs]::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabs are side by side, so their drop marks stand upright. */
+button[data-fork-drop="before"]::before,
+button[data-fork-drop="after"]::after {
+  inset-inline: auto;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  height: auto;
+}
+button[data-fork-drop="before"]::before {
+  left: -2px;
+}
+button[data-fork-drop="after"]::after {
+  right: -2px;
+}

@@ -1,4 +1,4 @@
-import { PlusIcon } from "lucide-react";
+import { HouseIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -20,7 +20,7 @@ import type { SidebarRowDragProps } from "./useSidebarProjectDrag";
 export function SidebarSpaceTabs(props: {
   /** Projects on screen now; the first space adopts them so creating it hides nothing. */
   visibleProjectKeys: readonly string[];
-  tabDragProps: (spaceId: string) => Omit<SidebarRowDragProps, "draggable" | "onDragStart">;
+  tabDragProps: (spaceId: string) => SidebarRowDragProps;
 }) {
   const spaces = useSidebarSpacesStore((state) => state.spaces);
   const activeSpaceId = useSidebarSpacesStore((state) => state.activeSpaceId);
@@ -54,8 +54,29 @@ export function SidebarSpaceTabs(props: {
     <div
       role="tablist"
       aria-label="Spaces"
+      data-fork-space-tabs=""
       className="mb-1.5 flex items-center gap-0.5 overflow-x-auto px-(--sidebar-row-content-inset)"
     >
+      {spaces.length > 0 ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                role="tab"
+                size="icon-xs"
+                variant={activeSpaceId === null ? "secondary" : "ghost-muted"}
+                aria-selected={activeSpaceId === null}
+                aria-label="All projects"
+                className="shrink-0"
+                onClick={() => setActiveSpace(null)}
+              />
+            }
+          >
+            <HouseIcon aria-hidden />
+          </TooltipTrigger>
+          <TooltipPopup>All projects, from every space</TooltipPopup>
+        </Tooltip>
+      ) : null}
       {spaces.map((space) => (
         <Button
           key={space.id}

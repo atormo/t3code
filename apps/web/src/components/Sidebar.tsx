@@ -231,6 +231,7 @@ import {
 } from "./Sidebar.snooze";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { deriveProviderEntriesByEnvironment } from "../providerInstances";
+import { useScratchProject } from "../hooks/useScratchProject";
 import { useStableCallback } from "../hooks/useStableCallback";
 import {
   resolveSidebarRouteReveal,
@@ -3047,7 +3048,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   );
   const showJumpHints = useThreadJumpHintsVisible(shouldShowJumpHintsNow);
 
+  const scratchProject = useScratchProject();
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
+    // Fork: in the boring sidebar this button starts a thread with no project; Shift+click or a
+    // project folder's own button starts one in a project.
+    const scratchEnvironmentId = scratchProject.scratchEnvironmentId(null);
+    if (boringSidebarEnabled && !event?.shiftKey && scratchEnvironmentId !== null) {
+      if (isMobile) setOpenMobile(false);
+      void scratchProject.startScratchThread(scratchEnvironmentId);
+      return;
+    }
     if (
       boringSidebarEnabled ||
       shouldCreateNewThreadInCurrentProject(
