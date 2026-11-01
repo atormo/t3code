@@ -1435,6 +1435,14 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:notes:write",
       tag: WS_METHODS.notesWrite,
     }),
+    getMcpStatus: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:mcp-status:get",
+      tag: WS_METHODS.mcpStatusGet,
+    }),
+    runMcpServerAction: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:mcp-status:action",
+      tag: WS_METHODS.mcpStatusAction,
+    }),
     updateSettings,
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {

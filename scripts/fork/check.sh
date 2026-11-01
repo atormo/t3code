@@ -9,6 +9,7 @@ echo "==> Typecheck"
 vp run \
   --filter @t3tools/contracts \
   --filter @t3tools/client-runtime \
+  --filter @t3tools/provider-core \
   --filter t3 \
   --filter @t3tools/web \
   --filter @t3tools/desktop \
@@ -24,9 +25,11 @@ vp test run \
   apps/web/src/fork/sidebar/projectOrganization.test.ts \
   apps/web/src/components/files/FilePreviewPanel.browser.test.tsx \
   apps/web/src/rightPanelStore.test.ts \
-  apps/desktop/src/fork/forkUpdates.test.ts
+  apps/desktop/src/fork/forkUpdates.test.ts \
+  apps/server/src/mcpStatus/McpStatus.test.ts \
+  apps/web/src/fork/statusbar/mcpStatus.logic.test.ts
 
 echo "==> Lint fork code"
-vp lint apps/web/src/fork apps/server/src/notes apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/fork
+vp lint apps/web/src/fork apps/server/src/notes apps/server/src/mcpStatus apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/fork
 
 echo "Fork checks passed."

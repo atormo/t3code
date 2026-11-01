@@ -116,6 +116,7 @@ import * as ExternalLauncher from "./process/externalLauncher.ts";
 import * as ThreadManagementService from "./orchestration-v2/ThreadManagementService.ts";
 import * as CommandOutputHub from "./orchestration-v2/CommandOutputHub.ts";
 import * as McpAppRequests from "./mcpApps/McpAppRequests.ts";
+import * as McpStatus from "./mcpStatus/McpStatus.ts";
 import * as ProviderSessionManager from "./orchestration-v2/ProviderSessionManager.ts";
 import * as ThreadLaunchService from "./orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadMessageIntake from "./orchestration-v2/ThreadMessageIntake.ts";
@@ -1277,6 +1278,7 @@ export const layerWsRpc = (
 
       const providerSessionsV2 = yield* ProviderSessionManager.ProviderSessionManagerV2;
       const mcpAppRequests = yield* McpAppRequests.McpAppRequests;
+      const mcpStatus = yield* McpStatus.McpStatus;
       const analytics = yield* AnalyticsService.AnalyticsService;
       const originProps = clientAnalyticsProps;
       const recordClientCommandAnalytics = (command: OrchestrationV2Command) => {
@@ -2530,6 +2532,8 @@ export const layerWsRpc = (
         [WS_METHODS.notesRead]: (input) => notes.read(input),
         [WS_METHODS.notesWrite]: (input) => notes.write(input).pipe(Effect.as({})),
         [WS_METHODS.notesSetTabs]: (input) => notes.setTabs(input).pipe(Effect.as({})),
+        [WS_METHODS.mcpStatusGet]: (input) => mcpStatus.get(input.threadId),
+        [WS_METHODS.mcpStatusAction]: (input) => mcpStatus.act(input).pipe(Effect.as({})),
         [WS_METHODS.serverRunStorageCleanup]: () => storageCleanup.runNow,
         [WS_METHODS.serverGetStorageCleanupReport]: () => storageCleanup.reports,
         [WS_METHODS.serverGetDatabaseStorage]: () => databaseStorage.status,

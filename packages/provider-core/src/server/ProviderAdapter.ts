@@ -1,4 +1,4 @@
-import type { OrchestrationV2HistoricalMessage } from "@t3tools/contracts";
+import type { OrchestrationV2HistoricalMessage, ProviderMcpServer } from "@t3tools/contracts";
 import {
   ChatAttachment,
   CheckpointId,
@@ -558,6 +558,18 @@ export interface ProviderAdapterV2McpApps {
   }) => Effect.Effect<{ readonly contents: ReadonlyArray<unknown> }, ProviderAdapterV2Error>;
 }
 
+/** Fork: live MCP server status and controls for one provider session. */
+export interface ProviderAdapterV2McpServers {
+  readonly status: Effect.Effect<ReadonlyArray<ProviderMcpServer>, ProviderAdapterV2Error>;
+  readonly reconnect: (name: string) => Effect.Effect<void, ProviderAdapterV2Error>;
+  readonly setEnabled: (
+    name: string,
+    enabled: boolean,
+  ) => Effect.Effect<void, ProviderAdapterV2Error>;
+  /** Removes it from the provider's config for good, as `claude mcp remove` does. */
+  readonly remove: (name: string, scope: string) => Effect.Effect<void, ProviderAdapterV2Error>;
+}
+
 export type ProviderAdapterV2SubagentOutcome = {
   readonly status: "completed" | "failed" | "cancelled";
   readonly completedAt: NonNullable<OrchestrationV2Subagent["completedAt"]>;
@@ -646,6 +658,8 @@ export interface ProviderAdapterV2SessionRuntime {
   }) => Effect.Effect<{ readonly feedbackId: string }, ProviderAdapterV2Error>;
   /** Absent means non-interactive apps with plain tool rows. */
   readonly mcpApps?: ProviderAdapterV2McpApps;
+  /** Fork: the session's MCP servers. Absent when the provider cannot report them. */
+  readonly mcpServers?: ProviderAdapterV2McpServers;
   readonly rollbackThread: (
     input: ProviderAdapterV2RollbackThreadInput,
   ) => Effect.Effect<ProviderAdapterV2ThreadSnapshot, ProviderAdapterV2Error>;

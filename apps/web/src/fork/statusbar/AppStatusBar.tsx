@@ -11,6 +11,7 @@ import { TerminalThreadViewSync } from "../chatview/TerminalThreadView";
 import { NotesPanel } from "../notes/NotesPanel";
 import { UsageLimitsItem } from "./UsageLimitsItem";
 import { KeepAwakeItem } from "./KeepAwake";
+import { McpStatusItem } from "./McpStatusItem";
 import "./statusbar.css";
 
 /** A bar along the bottom of the window: status on the left, Notes on the right. */
@@ -52,8 +53,9 @@ export function AppStatusBar() {
     >
       <TerminalThreadViewSync />
       {environmentId !== null ? <UsageLimitsItem /> : null}
-      {isElectron ? <KeepAwakeItem /> : null}
       <div className="flex-1" />
+      <McpStatusItem />
+      {isElectron ? <KeepAwakeItem /> : null}
       <Button
         ref={notesButtonRef}
         size="micro"

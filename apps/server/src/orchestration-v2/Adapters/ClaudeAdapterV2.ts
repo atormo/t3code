@@ -46,6 +46,7 @@ import {
   type SpawnedProcess as ClaudeSpawnedProcess,
   type SDKAssistantMessage,
   type SDKAPIRetryMessage,
+  type McpServerStatus,
   type SDKMessage,
   type SDKRateLimitInfo,
   type SDKResultMessage,
@@ -535,6 +536,18 @@ export interface ClaudeAgentSdkQuerySession {
   ) => Effect.Effect<boolean, ClaudeAgentSdkQueryRunnerError>;
   readonly interrupt: Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
   readonly close: Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
+  /** Fork: MCP status and controls; optional so test runners need not fake them. */
+  readonly mcpServerStatus?: Effect.Effect<
+    ReadonlyArray<McpServerStatus>,
+    ClaudeAgentSdkQueryRunnerError
+  >;
+  readonly reconnectMcpServer?: (
+    name: string,
+  ) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
+  readonly toggleMcpServer?: (
+    name: string,
+    enabled: boolean,
+  ) => Effect.Effect<void, ClaudeAgentSdkQueryRunnerError>;
 }
 
 type ClaudeQueryStreamExit = Exit.Exit<void, ClaudeAgentSdkQueryRunnerError>;
@@ -1156,6 +1169,20 @@ export const layerQueryRunner: Layer.Layer<
                   }),
                 ),
               ),
+            mcpServerStatus: Effect.tryPromise({
+              try: () => queryRuntime.mcpServerStatus(),
+              catch: (cause) => queryRunnerError(cause, "mcpServerStatus"),
+            }),
+            reconnectMcpServer: (name) =>
+              Effect.tryPromise({
+                try: () => queryRuntime.reconnectMcpServer(name),
+                catch: (cause) => queryRunnerError(cause, "reconnectMcpServer"),
+              }),
+            toggleMcpServer: (name, enabled) =>
+              Effect.tryPromise({
+                try: () => queryRuntime.toggleMcpServer(name, enabled),
+                catch: (cause) => queryRunnerError(cause, "toggleMcpServer"),
+              }),
             setModel: (model) =>
               Effect.tryPromise({
                 try: () => queryRuntime.setModel(model),
@@ -11012,11 +11039,66 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           },
         );
 
+        const mcpServersError = (detail: string) => (cause: unknown) =>
+          new ProviderAdapter.ProviderAdapterProtocolError({
+            driver: CLAUDE_PROVIDER,
+            detail,
+            payload: cause,
+          });
+        const liveQuery = Ref.get(queryContext).pipe(Effect.map((live) => live?.query ?? null));
+        const mcpServers: ProviderAdapter.ProviderAdapterV2McpServers = {
+          status: Effect.gen(function* () {
+            const query = yield* liveQuery;
+            if (query?.mcpServerStatus === undefined) return [];
+            const servers = yield* query.mcpServerStatus;
+            return servers
+              .filter((server) => server.source !== "sdk")
+              .map((server) => ({
+                name: server.name,
+                status: server.status,
+                toolCount: server.tools?.length ?? 0,
+                ...(server.error === undefined ? {} : { error: server.error }),
+                ...(server.scope === undefined ? {} : { scope: server.scope }),
+              }));
+          }).pipe(Effect.mapError(mcpServersError("Could not read Claude's MCP servers."))),
+          reconnect: (name) =>
+            liveQuery.pipe(
+              Effect.flatMap((query) => query?.reconnectMcpServer?.(name) ?? Effect.void),
+              Effect.mapError(mcpServersError(`Could not reconnect ${name}.`)),
+            ),
+          setEnabled: (name, enabled) =>
+            liveQuery.pipe(
+              Effect.flatMap((query) => query?.toggleMcpServer?.(name, enabled) ?? Effect.void),
+              Effect.mapError(mcpServersError(`Could not change ${name}.`)),
+            ),
+          remove: (name, scope) =>
+            spawner
+              .string(
+                ChildProcess.make(
+                  adapterOptions.settings.binaryPath,
+                  ["mcp", "remove", name, "--scope", scope],
+                  {
+                    env: adapterOptions.environment,
+                    ...(input.runtimePolicy.cwd === null ? {} : { cwd: input.runtimePolicy.cwd }),
+                  },
+                ),
+              )
+              .pipe(
+                Effect.andThen(
+                  liveQuery.pipe(
+                    Effect.flatMap((query) => query?.toggleMcpServer?.(name, false) ?? Effect.void),
+                  ),
+                ),
+                Effect.mapError(mcpServersError(`Could not remove ${name}.`)),
+              ),
+        };
+
         const runtime: ProviderAdapter.ProviderAdapterV2SessionRuntime = {
           instanceId: adapterOptions.instanceId,
           driver: CLAUDE_PROVIDER,
           providerSessionId: input.providerSessionId,
           providerSession: session,
+          mcpServers,
           getModelContextWindow: (selection) =>
             resolveClaudeCatalogContextWindowTokens(BUNDLED_CLAUDE_MODEL_CATALOG, selection),
           events: Stream.fromEffectRepeat(Queue.take(events)),

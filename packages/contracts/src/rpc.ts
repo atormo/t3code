@@ -166,6 +166,12 @@ import {
   NotesSetTabsInput,
   NotesWriteInput,
 } from "./notes.ts";
+import {
+  McpServerActionInput,
+  McpStatusError,
+  McpStatusInput,
+  McpStatusResult,
+} from "./mcpStatus.ts";
 import { OrchestrationSearchThreadsError } from "./threadSearch.ts";
 import {
   ProviderUploadFeedbackError,
@@ -516,6 +522,8 @@ export const WS_METHODS = {
   notesRead: "notes.read",
   notesWrite: "notes.write",
   notesSetTabs: "notes.setTabs",
+  mcpStatusGet: "mcpStatus.get",
+  mcpStatusAction: "mcpStatus.action",
   serverRunStorageCleanup: "server.runStorageCleanup",
   serverGetStorageCleanupReport: "server.getStorageCleanupReport",
   serverGetDatabaseStorage: "server.getDatabaseStorage",
@@ -658,6 +666,18 @@ const WsNotesWriteRpc = Rpc.make(WS_METHODS.notesWrite, {
   payload: NotesWriteInput,
   success: Schema.Struct({}),
   error: Schema.Union([NotesError, EnvironmentAuthorizationError]),
+});
+
+const WsMcpStatusGetRpc = Rpc.make(WS_METHODS.mcpStatusGet, {
+  payload: McpStatusInput,
+  success: McpStatusResult,
+  error: Schema.Union([McpStatusError, EnvironmentAuthorizationError]),
+});
+
+const WsMcpStatusActionRpc = Rpc.make(WS_METHODS.mcpStatusAction, {
+  payload: McpServerActionInput,
+  success: Schema.Struct({}),
+  error: Schema.Union([McpStatusError, EnvironmentAuthorizationError]),
 });
 
 const WsServerProbeRpc = Rpc.make(WS_METHODS.serverProbe, {
@@ -2035,6 +2055,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsNotesReadRpc,
   WsNotesWriteRpc,
   WsNotesSetTabsRpc,
+  WsMcpStatusGetRpc,
+  WsMcpStatusActionRpc,
   WsServerRunStorageCleanupRpc,
   WsServerGetStorageCleanupReportRpc,
   WsServerGetDatabaseStorageRpc,

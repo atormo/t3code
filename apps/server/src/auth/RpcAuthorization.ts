@@ -87,6 +87,8 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.notesRead]: AuthOrchestrationReadScope,
   [WS_METHODS.notesWrite]: AuthOrchestrationOperateScope,
   [WS_METHODS.notesSetTabs]: AuthOrchestrationOperateScope,
+  [WS_METHODS.mcpStatusGet]: AuthOrchestrationReadScope,
+  [WS_METHODS.mcpStatusAction]: AuthOrchestrationOperateScope,
   [WS_METHODS.serverGetStorageCleanupReport]: AuthOrchestrationReadScope,
   [WS_METHODS.serverGetDatabaseStorage]: AuthOrchestrationReadScope,
   [WS_METHODS.peerLinksList]: AuthAccessReadScope,
