@@ -1,4 +1,6 @@
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
+import { useClientSettings } from "../../hooks/useSettings";
+import { isDisclosureOpen } from "../../fork/chatview/disclosureDefaults";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
 import {
   getQuestionAnswerPreview,
@@ -186,14 +188,18 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       ? notificationChildThreadId(workEntry.projectedItem.item.source)
       : undefined;
   const groupView = use(WorkGroupViewCtx);
-  const [expanded, setExpanded] = useState(
-    () => groupView?.state.expandedEntries.has(workEntry.id) ?? false,
+  // Fork: with live work on, commands open by default and the set records the ones you closed.
+  const showWorkLive = useClientSettings((settings) => settings.showWorkLive);
+  const openByDefault =
+    showWorkLive && Boolean(workEntryRawCommand(workEntry) || workEntry.command?.trim());
+  const [expanded, setExpanded] = useState(() =>
+    isDisclosureOpen(groupView?.state.expandedEntries, workEntry.id, openByDefault),
   );
   const toggleExpanded = () => {
     const next = !expanded;
     if (groupView) {
       groupView.onToggleEntry(!next);
-      if (next) groupView.state.expandedEntries.add(workEntry.id);
+      if (next !== openByDefault) groupView.state.expandedEntries.add(workEntry.id);
       else groupView.state.expandedEntries.delete(workEntry.id);
     } else {
       props.onToggleEntry?.(!next);

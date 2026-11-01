@@ -29,6 +29,9 @@ vp test run \
   apps/desktop/src/ipc/methods/appIcon.test.ts \
   apps/server/src/mcpStatus apps/server/src/skills/McpStatus.test.ts \
   apps/web/src/fork/statusbar/mcpStatus.logic.test.ts \
+  apps/web/src/fork/statusbar/activity.logic.test.ts \
+  apps/web/src/fork/chatview/disclosureDefaults.test.ts \
+  apps/web/src/components/chat/MessagesTimeline.logic.test.ts \
   apps/server/src/skills/skillRemoval.test.ts \
   apps/server/src/skills/skillAuthors.test.ts \
   apps/web/src/fork/skills/skillsSection.logic.test.ts

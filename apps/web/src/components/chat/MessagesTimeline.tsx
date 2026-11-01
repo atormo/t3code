@@ -1,4 +1,6 @@
 import { threadEnvironment } from "../../state/threads";
+import { useClientSettings } from "../../hooks/useSettings";
+import { openDisclosure } from "../../fork/chatview/disclosureDefaults";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import { AudioPreviewUnmountContext } from "../files/AudioPreview";
@@ -412,6 +414,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
     ...timelineListStateFor(listIdentityKey),
     findOpenAtOpening: findOpen,
   }));
+  // Fork: with live work on, the latest turn and its steps stay open until you fold them.
+  const workOpenByDefault = useClientSettings((settings) => settings.showWorkLive);
+  const runOpensByDefault = (runId: RunId) => workOpenByDefault && latestRun?.runId === runId;
   const [expandedRunIds, setExpandedRunIds] = useState<ReadonlySet<RunId>>(
     () => listState.rememberedPosition?.disclosures?.runs ?? new Set(),
   );
@@ -571,7 +576,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
     ) {
       if (latestRun.runId === previousRunId) {
         if (observedLatestRun.status === "running" && latestRun.status === "interrupted") {
-          setExpandedRunIds((existing) => new Set(existing).add(latestRun.runId));
+          setExpandedRunIds((existing) =>
+            openDisclosure(existing, latestRun.runId, runOpensByDefault(latestRun.runId)),
+          );
         }
       } else {
         setExpandedRunIds((existing) => {
@@ -601,7 +608,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     setExpandedFindRunId(activeFindRunId);
     if (activeFindRunId) {
       setExpandedRunIds((previous) =>
-        previous.has(activeFindRunId) ? previous : new Set(previous).add(activeFindRunId),
+        openDisclosure(previous, activeFindRunId, runOpensByDefault(activeFindRunId)),
       );
     }
   }
@@ -638,7 +645,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     setCitationExpandedFor(citationRequest.key);
     if (citedRunId) {
       setExpandedRunIds((previous) =>
-        previous.has(citedRunId) ? previous : new Set(previous).add(citedRunId),
+        openDisclosure(previous, citedRunId, runOpensByDefault(citedRunId)),
       );
     }
     const citedAttempt = citedEntry.attempt;
@@ -648,10 +655,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
       );
     }
   }
-  const visibleExpandedRunIds =
-    !activeFindRunId || paintedExpandedRunIds.has(activeFindRunId)
-      ? paintedExpandedRunIds
-      : new Set(paintedExpandedRunIds).add(activeFindRunId);
+  const visibleExpandedRunIds = activeFindRunId
+    ? openDisclosure(paintedExpandedRunIds, activeFindRunId, runOpensByDefault(activeFindRunId))
+    : paintedExpandedRunIds;
 
   const activeFindAttemptId = activeFindMatch
     ? timelineEntries.find((entry) => entry.id === activeFindMatch.entryId)?.attempt?.id
@@ -683,6 +689,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     expandedRunIds: visibleExpandedRunIds,
     expandedAttemptIds: visibleExpandedAttemptIds,
     expandedWorkGroupIds,
+    workOpenByDefault,
     isWorking,
     runlessWorkActive,
     activeTurnStartedAt,

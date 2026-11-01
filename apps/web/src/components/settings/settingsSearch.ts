@@ -354,6 +354,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["dock icon logo blueprint blue black nightly mac"],
   },
   {
+    id: "show-work-live",
+    title: "Show the agent's work as it happens",
+    to: "/settings/appearance",
+    searchTerms: ["live expand tool calls commands steps collapse fold worked for code"],
+  },
+  {
     id: "terminal-thread-view",
     title: "Terminal-style threads",
     to: "/settings/appearance",

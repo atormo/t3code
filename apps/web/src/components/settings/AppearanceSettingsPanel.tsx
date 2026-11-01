@@ -338,6 +338,17 @@ export function AppearanceSettingsPanel() {
           />
         ) : null}
         <SettingsRow
+          {...searchableSetting("show-work-live")}
+          description="Keep the latest turn's commands, edits and thinking open while the agent works and after it finishes. Fold them yourself with the arrow."
+          control={
+            <Switch
+              checked={settings.showWorkLive}
+              onCheckedChange={(checked) => updateSettings({ showWorkLive: Boolean(checked) })}
+              aria-label="Show the agent's work as it happens"
+            />
+          }
+        />
+        <SettingsRow
           {...searchableSetting("terminal-thread-view")}
           description="Show your messages as prompt lines and the agent's steps as a monospace log, like a terminal. Replies stay in regular text."
           control={

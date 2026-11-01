@@ -11,6 +11,7 @@ import { AppIconSync } from "../appIcon/AppIconSync";
 import { TerminalThreadViewSync } from "../chatview/TerminalThreadView";
 import { NotesPanel } from "../notes/NotesPanel";
 import { UsageLimitsItem } from "./UsageLimitsItem";
+import { ActivityItem } from "./ActivityItem";
 import { KeepAwakeItem } from "./KeepAwake";
 import { McpStatusItem } from "./McpStatusItem";
 import "./statusbar.css";
@@ -56,6 +57,7 @@ export function AppStatusBar() {
       {isElectron ? <AppIconSync /> : null}
       {environmentId !== null ? <UsageLimitsItem /> : null}
       <div className="flex-1" />
+      <ActivityItem />
       <McpStatusItem />
       {isElectron ? <KeepAwakeItem /> : null}
       <Button

@@ -1,4 +1,5 @@
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
+import { isDisclosureOpen } from "../../fork/chatview/disclosureDefaults";
 import { resolveUserMessagePresentation } from "@t3tools/client-runtime/user-message";
 import { isLiveSubagentTurnItem } from "@t3tools/client-runtime/state/subagentRuntime";
 import * as DateTime from "effect/DateTime";
@@ -129,6 +130,11 @@ function workEntryReadPaths(entry: WorkLogEntry, workspaceRoot: string | undefin
   return workEntryReadRawPaths(entry).map((filePath) =>
     formatWorkspaceRelativePath(filePath, workspaceRoot),
   );
+}
+
+/** Fork: only the latest turn opens by default, so long threads do not unfold every old turn. */
+function runOpenByDefault(input: MessagesTimelineRowsInput, runId: RunId): boolean {
+  return input.workOpenByDefault === true && input.latestRun?.runId === runId;
 }
 
 export function workEntryDisplayLabel(entry: WorkLogEntry, workspaceRoot: string | undefined) {
@@ -1398,6 +1404,8 @@ export function deriveMessagesTimelineRows(input: {
   expandedRunIds?: ReadonlySet<RunId>;
   expandedAttemptIds?: ReadonlySet<RunAttemptId>;
   expandedWorkGroupIds?: ReadonlySet<string>;
+  /** Fork: the latest turn and work groups start open; the sets then record what you closed. */
+  workOpenByDefault?: boolean;
   isWorking: boolean;
   /** Native subagent work has no app run; runless entries form the live response. */
   runlessWorkActive?: boolean;
@@ -1466,7 +1474,7 @@ export function deriveMessagesTimelineRows(input: {
   const collapsedEntryIds = new Set<string>();
   const collapsedFoldMemberIds = new Set<string>();
   for (const fold of foldsByAnchorEntryId.values()) {
-    if (!input.expandedRunIds?.has(fold.runId)) {
+    if (!isDisclosureOpen(input.expandedRunIds, fold.runId, runOpenByDefault(input, fold.runId))) {
       for (const entryId of fold.hiddenEntryIds) {
         collapsedEntryIds.add(entryId);
       }
@@ -1569,7 +1577,11 @@ export function deriveMessagesTimelineRows(input: {
             entry: (latestRunningToolEntry ?? latestVisibleToolEntry).entry,
             groupedEntries: visibleActiveToolEntries.map((entry) => entry.entry),
             groupId,
-            expanded: input.expandedWorkGroupIds?.has(groupId) ?? false,
+            expanded: isDisclosureOpen(
+              input.expandedWorkGroupIds,
+              groupId,
+              input.workOpenByDefault === true,
+            ),
             active: latestToolKeepsActivityLive,
             ...(latestThoughtEntry ? { thought: latestThoughtEntry.entry } : {}),
           };
@@ -1723,7 +1735,11 @@ export function deriveMessagesTimelineRows(input: {
         createdAt: turnFold.createdAt,
         runId: turnFold.runId,
         label: turnFold.label,
-        expanded: input.expandedRunIds?.has(turnFold.runId) ?? false,
+        expanded: isDisclosureOpen(
+          input.expandedRunIds,
+          turnFold.runId,
+          runOpenByDefault(input, turnFold.runId),
+        ),
       });
     }
 
@@ -1852,7 +1868,11 @@ export function deriveMessagesTimelineRows(input: {
         const activeInProgressToolEntries = visibleGroupedEntries.filter(workEntryIsInActiveRun);
         if (activeInProgressToolEntries.length > 0) {
           const groupId = workGroupId(timelineEntry.id);
-          const expanded = input.expandedWorkGroupIds?.has(groupId) ?? false;
+          const expanded = isDisclosureOpen(
+            input.expandedWorkGroupIds,
+            groupId,
+            input.workOpenByDefault === true,
+          );
           const latestActiveToolEntry = activeInProgressToolEntries.at(-1)!;
           nextRows.push({
             kind: "work-live",
@@ -1888,7 +1908,11 @@ export function deriveMessagesTimelineRows(input: {
           });
         } else {
           const groupId = workGroupId(timelineEntry.id);
-          const expanded = input.expandedWorkGroupIds?.has(groupId) ?? false;
+          const expanded = isDisclosureOpen(
+            input.expandedWorkGroupIds,
+            groupId,
+            input.workOpenByDefault === true,
+          );
           const summaryKind = toolGroupSummaryKind(visibleGroupedEntries);
           const primarySourceEntry = visibleGroupedEntries.find(
             (entry) => entry.toolSource !== undefined,
@@ -2112,7 +2136,11 @@ export function deriveMessagesTimelineRows(input: {
     const failedGroupAnchor = latestToolFailed ? activeWorkAnchor : undefined;
     if (failedGroupAnchor) {
       const groupId = workGroupId(failedGroupAnchor.id);
-      const expanded = input.expandedWorkGroupIds?.has(groupId) ?? false;
+      const expanded = isDisclosureOpen(
+        input.expandedWorkGroupIds,
+        groupId,
+        input.workOpenByDefault === true,
+      );
       nextRows.push({
         kind: "thinking",
         id: LIVE_ACTIVITY_ROW_ID,
