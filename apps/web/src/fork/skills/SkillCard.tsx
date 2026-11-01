@@ -23,11 +23,6 @@ const ORIGIN_LABEL: Record<SkillOrigin, string> = {
   other: "Other",
 };
 
-/** The SKILL.md body without its YAML front matter. */
-function skillBody(head: string): string {
-  return head.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
-}
-
 /** The eye button and the card it opens: the whole description, the start of SKILL.md, and links. */
 export function SkillCard(props: {
   skill: ServerProviderSkill;
@@ -67,13 +62,6 @@ export function SkillCard(props: {
           <p className="max-h-32 overflow-y-auto text-foreground/90 leading-relaxed">
             {skill.description ?? skill.shortDescription ?? "No description."}
           </p>
-          {details === null ? (
-            <p className="text-muted-foreground">Loading SKILL.md…</p>
-          ) : (
-            <pre className="max-h-48 overflow-y-auto rounded-md bg-muted/60 px-2.5 py-2 font-mono text-2xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
-              {skillBody(details.head)}
-            </pre>
-          )}
           <span className="truncate font-mono text-2xs text-muted-foreground/80">
             {file ?? skill.path}
           </span>
