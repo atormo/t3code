@@ -348,6 +348,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["reasoning effort thinking bars graph word label level composer"],
   },
   {
+    id: "app-icon",
+    title: "App icon",
+    to: "/settings/appearance",
+    searchTerms: ["dock icon logo blueprint blue black nightly mac"],
+  },
+  {
     id: "terminal-thread-view",
     title: "Terminal-style threads",
     to: "/settings/appearance",

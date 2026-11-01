@@ -1,3 +1,5 @@
+import { AppIconPicker } from "../../fork/appIcon/AppIconPicker";
+import { isElectron } from "../../env";
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import {
@@ -323,6 +325,18 @@ export function AppearanceSettingsPanel() {
             </div>
           }
         />
+        {isElectron ? (
+          <SettingsRow
+            {...searchableSetting("app-icon")}
+            description="The icon T3 Code shows in the Dock and in Applications. Changes right away."
+            control={
+              <AppIconPicker
+                value={settings.appIcon}
+                onChange={(appIcon) => updateSettings({ appIcon })}
+              />
+            }
+          />
+        ) : null}
         <SettingsRow
           {...searchableSetting("terminal-thread-view")}
           description="Show your messages as prompt lines and the agent's steps as a monospace log, like a terminal. Replies stay in regular text."

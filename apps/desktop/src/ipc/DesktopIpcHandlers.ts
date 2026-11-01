@@ -3,6 +3,7 @@ import * as Effect from "effect/Effect";
 import { receiveProviderAuthCallback, cancelProviderAuthCallback } from "./methods/providerAuth.ts";
 import * as DesktopIpc from "./DesktopIpc.ts";
 import { installNotificationBadge } from "./methods/notificationBadge.ts";
+import { installAppIcon } from "./methods/appIcon.ts";
 import { installKeepAwake } from "./methods/keepAwake.ts";
 import { getClientSettings, setClientSettings } from "./methods/clientSettings.ts";
 import { getConnectionCatalog, setConnectionCatalog } from "./methods/connectionCatalog.ts";
@@ -84,6 +85,7 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   const ipc = yield* DesktopIpc.DesktopIpc;
   yield* installNotificationBadge();
   yield* installKeepAwake();
+  yield* installAppIcon();
   yield* PreviewIpc.installPreviewEventForwarding();
 
   yield* ipc.handle(AppActivationIpc.setReady);
