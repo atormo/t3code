@@ -70,8 +70,8 @@ export function SkillCard(props: {
           {details === null ? (
             <p className="text-muted-foreground">Loading SKILL.md…</p>
           ) : (
-            <pre className="max-h-40 overflow-hidden rounded-md bg-muted/60 px-2.5 py-2 font-mono text-2xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
-              {skillBody(details.head).slice(0, 900)}
+            <pre className="max-h-48 overflow-y-auto rounded-md bg-muted/60 px-2.5 py-2 font-mono text-2xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
+              {skillBody(details.head)}
             </pre>
           )}
           <span className="truncate font-mono text-2xs text-muted-foreground/80">
