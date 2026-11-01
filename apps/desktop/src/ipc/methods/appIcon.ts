@@ -1,5 +1,7 @@
 import * as Electron from "electron";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
+import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
@@ -32,6 +34,8 @@ export const installAppIcon = Effect.fn("desktop.ipc.installAppIcon")(function* 
   const ipc = yield* DesktopIpc.DesktopIpc;
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   yield* ipc.handle(
     DesktopIpc.makeIpcMethod({
       channel: SET_APP_ICON_CHANNEL,
@@ -43,16 +47,23 @@ export const installAppIcon = Effect.fn("desktop.ipc.installAppIcon")(function* 
           .resolveResourcePathCandidates(`fork-icons/${icon}.png`)
           .find((candidate) => !Electron.nativeImage.createFromPath(candidate).isEmpty());
         if (imagePath === undefined) return;
-        Electron.app.dock?.setIcon(Electron.nativeImage.createFromPath(imagePath));
+        const image = Electron.nativeImage.createFromPath(imagePath);
+        Electron.app.dock?.setIcon(image);
         const bundle = environment.isPackaged ? appBundlePath(process.execPath) : null;
         if (bundle === null) return;
+        // The packaged icons live inside app.asar, which only Electron can read; hand macOS a real file.
+        const realImagePath = path.join(
+          Electron.app.getPath("temp"),
+          `t3code-app-icon-${icon}.png`,
+        );
+        yield* fileSystem.writeFile(realImagePath, image.toPNG()).pipe(Effect.ignore);
         yield* spawner
           .string(
             ChildProcess.make("osascript", [
               "-l",
               "JavaScript",
               "-e",
-              setBundleIconScript(bundle, icon === "black" ? null : imagePath),
+              setBundleIconScript(bundle, icon === "black" ? null : realImagePath),
             ]),
           )
           .pipe(Effect.ignore);
