@@ -9,7 +9,7 @@ import * as DesktopEnvironment from "../../app/DesktopEnvironment.ts";
 import * as DesktopIpc from "../DesktopIpc.ts";
 import { SET_APP_ICON_CHANNEL } from "../channels.ts";
 
-const AppIcon = Schema.Literals(["black", "blueprint", "nightly"]);
+const AppIcon = Schema.Literals(["black", "blueprint", "nightly", "red"]);
 
 /** The .app bundle holding this executable, or null outside a packaged Mac build. */
 export function appBundlePath(execPath: string): string | null {

@@ -2,13 +2,15 @@ import { cn } from "../../lib/utils";
 import blackIcon from "./black.png";
 import blueprintIcon from "./blueprint.png";
 import nightlyIcon from "./nightly.png";
+import redIcon from "./red.png";
 
-export type AppIcon = "black" | "blueprint" | "nightly";
+export type AppIcon = "black" | "blueprint" | "nightly" | "red";
 
 const ICONS: ReadonlyArray<{ id: AppIcon; label: string; src: string }> = [
   { id: "black", label: "Black", src: blackIcon },
   { id: "blueprint", label: "Blueprint", src: blueprintIcon },
   { id: "nightly", label: "Nightly", src: nightlyIcon },
+  { id: "red", label: "Red", src: redIcon },
 ];
 
 /** The Mac app icon choices, shown as the icons themselves. */

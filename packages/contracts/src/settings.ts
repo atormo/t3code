@@ -526,7 +526,7 @@ export const ClientSettingsSchema = Schema.Struct({
   /** Fork: draw threads like a terminal transcript. */
   terminalThreadView: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   /** Fork: the Mac app icon. */
-  appIcon: Schema.Literals(["black", "blueprint", "nightly"]).pipe(
+  appIcon: Schema.Literals(["black", "blueprint", "nightly", "red"]).pipe(
     Schema.withDecodingDefault(Effect.succeed("black" as const)),
   ),
 });
@@ -1804,6 +1804,6 @@ export const ClientSettingsPatch = Schema.Struct({
   wordWrap: Schema.optionalKey(Schema.Boolean),
   mathRenderingEnabled: Schema.optionalKey(Schema.Boolean),
   terminalThreadView: Schema.optionalKey(Schema.Boolean),
-  appIcon: Schema.optionalKey(Schema.Literals(["black", "blueprint", "nightly"])),
+  appIcon: Schema.optionalKey(Schema.Literals(["black", "blueprint", "nightly", "red"])),
 });
 export type ClientSettingsPatch = typeof ClientSettingsPatch.Type;

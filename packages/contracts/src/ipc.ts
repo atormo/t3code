@@ -1019,7 +1019,7 @@ export interface DesktopBridge {
   setNotificationBadge: (badge: { count: number; image: string | null }) => Promise<void>;
   setKeepAwake: (active: boolean) => Promise<void>;
   /** Fork: switches the Mac app icon. */
-  setAppIcon: (icon: "black" | "blueprint" | "nightly") => Promise<void>;
+  setAppIcon: (icon: "black" | "blueprint" | "nightly" | "red") => Promise<void>;
   onNotificationBadgeClear: (listener: () => void) => () => void;
   onTrackpadScrollBegin: (listener: () => void) => () => void;
   onTrackpadScrollEnd: (listener: () => void) => () => void;
