@@ -17,3 +17,21 @@ export function removableSkillDirectory(skillPath: string): string | null {
   if (!name || parts.at(-2) !== "skills" || !SKILL_HOMES.has(parts.at(-3) ?? "")) return null;
   return directory;
 }
+
+/** The SKILL.md a reported skill path points at, or null for anything else. */
+export function skillFileOf(skillPath: string): string | null {
+  const normalized = skillPath.replaceAll("\\", "/").replace(/\/+$/, "");
+  if (!normalized.startsWith("/") || normalized.split("/").includes("..")) return null;
+  return normalized.endsWith("/SKILL.md") ? normalized : `${normalized}/SKILL.md`;
+}
+
+/** `https://github.com/owner/repo/tree/HEAD/path` for a folder in a clone of a GitHub repository. */
+export function githubTreeUrl(remote: string, repoRoot: string, directory: string): string | null {
+  const match = /github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(remote.trim());
+  if (!match) return null;
+  const root = repoRoot.replace(/\/+$/, "");
+  if (directory !== root && !directory.startsWith(`${root}/`)) return null;
+  const relative = directory.slice(root.length + 1);
+  const base = `https://github.com/${match[1]}/${match[2]}`;
+  return relative === "" ? base : `${base}/tree/HEAD/${relative}`;
+}

@@ -1447,6 +1447,10 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:skills:remove",
       tag: WS_METHODS.skillsRemove,
     }),
+    inspectSkill: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:skills:inspect",
+      tag: WS_METHODS.skillsInspect,
+    }),
     updateSettings,
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {

@@ -5,7 +5,7 @@ import {
   resolveProviderSkillsForCwd,
 } from "@t3tools/client-runtime/providerSkills";
 import type { EnvironmentId, ServerProviderSkill, ThreadId } from "@t3tools/contracts";
-import { PinIcon, PinOffIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, PinIcon, PinOffIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { ProviderInstanceIcon } from "../../components/chat/ProviderInstanceIcon";
@@ -13,16 +13,19 @@ import { ThreadDetailsSection } from "../../components/chat/ThreadDetailsSection
 import { Button } from "../../components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../components/ui/tooltip";
 import { type DraftId, useComposerDraftStore } from "../../composerDraftStore";
+import { cn } from "../../lib/utils";
 import { readLocalApi } from "../../localApi";
 import { useQuietThreadShell } from "../../state/entities";
 import { useEnvironmentProviders } from "../../state/environments";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useSkillPinsStore } from "./skillPinsStore";
+import { SkillCard } from "./SkillCard";
 import {
-  groupSkills,
+  filterSkills,
   isRemovableSkill,
-  SKILL_GROUP_TITLE,
+  SKILL_FILTER_LABEL,
+  type SkillFilter,
   skillPinKey,
 } from "./skillsSection.logic";
 import "./skills.css";
@@ -53,6 +56,9 @@ export function ThreadSkillsSection(props: {
     null;
   const pinned = useSkillPinsStore((store) => store.pinned);
   const togglePin = useSkillPinsStore((store) => store.toggle);
+  const collapsed = useSkillPinsStore((store) => store.collapsed);
+  const setCollapsed = useSkillPinsStore((store) => store.setCollapsed);
+  const [filter, setFilter] = useState<SkillFilter>("all");
   const removeSkill = useAtomCommand(serverEnvironment.removeSkill, { reportFailure: true });
   const [query, setQuery] = useState("");
   const [removedPaths, setRemovedPaths] = useState<ReadonlySet<string>>(new Set());
@@ -64,7 +70,7 @@ export function ThreadSkillsSection(props: {
     ),
   );
   if (skills.length === 0) return null;
-  const groups = groupSkills(skills, new Set(pinned), provider.driver, query);
+  const shown = filterSkills(skills, new Set(pinned), provider.driver, filter, query);
 
   const addToMessage = (skill: ServerProviderSkill) => {
     const store = useComposerDraftStore.getState();
@@ -100,91 +106,120 @@ export function ThreadSkillsSection(props: {
             size="compact"
           />
           {skills.length}
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label={collapsed ? "Show skills" : "Hide skills"}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            <ChevronDownIcon
+              aria-hidden
+              className={cn("transition-transform", collapsed && "-rotate-90")}
+            />
+          </Button>
         </span>
       }
     >
-      <div className="flex flex-col gap-1 px-1">
-        <label className="flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs text-muted-foreground">
-          <SearchIcon aria-hidden className="size-3.5 shrink-0" />
-          <input
-            className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
-            placeholder="Search skills"
-            aria-label="Search skills"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <div className="max-h-96 overflow-y-auto">
-          {groups.map((group) => (
-            <div key={group.id} className="mt-1.5 first:mt-1">
-              <div className="px-1.5 pb-0.5 text-2xs font-medium text-muted-foreground uppercase tracking-wide">
-                {SKILL_GROUP_TITLE[group.id]}
-              </div>
-              <ul className="m-0 list-none p-0">
-                {group.skills.map((skill) => {
-                  const pinKey = skillPinKey(provider.driver, skill);
-                  const isPinned = pinned.includes(pinKey);
-                  return (
-                    <li
-                      key={skill.path}
-                      className="group/skill relative rounded-md hover:bg-accent"
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full flex-col items-start gap-0.5 rounded-md px-1.5 py-1 pe-14 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                        aria-label={`Add the ${skill.name} skill to your message`}
-                        onClick={() => addToMessage(skill)}
+      {collapsed ? null : (
+        <div className="flex flex-col gap-1.5 px-1">
+          <label className="flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs text-muted-foreground">
+            <SearchIcon aria-hidden className="size-3.5 shrink-0" />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+              placeholder="Search skills"
+              aria-label="Search skills"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div role="tablist" aria-label="Skill filters" className="flex flex-wrap gap-1">
+            {(["all", "project", "plugin", "pinned"] as const).map((id) =>
+              id !== "all" && shown.counts[id] === 0 && filter !== id ? null : (
+                <Button
+                  key={id}
+                  role="tab"
+                  size="xs"
+                  variant={filter === id ? "secondary" : "ghost-muted"}
+                  aria-selected={filter === id}
+                  onClick={() => setFilter(id)}
+                >
+                  {SKILL_FILTER_LABEL[id]}
+                  <span className="tabular-nums text-muted-foreground">{shown.counts[id]}</span>
+                </Button>
+              ),
+            )}
+          </div>
+          <ul className="m-0 max-h-96 list-none overflow-y-auto p-0">
+            {shown.skills.map((skill) => {
+              const pinKey = skillPinKey(provider.driver, skill);
+              const isPinned = pinned.includes(pinKey);
+              return (
+                <li key={skill.path} className="group/skill relative rounded-md hover:bg-accent">
+                  <button
+                    type="button"
+                    className="flex w-full flex-col items-start gap-0.5 rounded-md px-1.5 py-1 pe-20 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    aria-label={`Add the ${skill.name} skill to your message`}
+                    onClick={() => addToMessage(skill)}
+                  >
+                    <span className="flex items-center gap-1 font-mono text-xs text-foreground">
+                      {skill.name}
+                      {isPinned ? (
+                        <PinIcon aria-label="Pinned" className="size-3 text-muted-foreground" />
+                      ) : null}
+                    </span>
+                    <span data-fork-skill-description="" className="text-xs text-muted-foreground">
+                      {skill.shortDescription ?? skill.description ?? ""}
+                    </span>
+                  </button>
+                  <span className="absolute top-1 right-1 flex items-center opacity-0 focus-within:opacity-100 group-hover/skill:opacity-100 has-[[data-popup-open]]:opacity-100">
+                    <SkillCard
+                      skill={skill}
+                      environmentId={props.environmentId}
+                      threadRef={threadRef}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            size="icon-xs"
+                            variant="ghost-muted"
+                            aria-label={isPinned ? `Unpin ${skill.name}` : `Pin ${skill.name}`}
+                            onClick={() => togglePin(pinKey)}
+                          />
+                        }
                       >
-                        <span className="font-mono text-xs text-foreground">{skill.name}</span>
-                        <span
-                          data-fork-skill-description=""
-                          className="text-xs text-muted-foreground"
+                        {isPinned ? <PinOffIcon aria-hidden /> : <PinIcon aria-hidden />}
+                      </TooltipTrigger>
+                      <TooltipPopup>{isPinned ? "Unpin" : "Pin to the top"}</TooltipPopup>
+                    </Tooltip>
+                    {isRemovableSkill(skill) ? (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              size="icon-xs"
+                              variant="ghost-muted"
+                              aria-label={`Remove ${skill.name}`}
+                              onClick={() => void remove(skill)}
+                            />
+                          }
                         >
-                          {skill.shortDescription ?? skill.description ?? ""}
-                        </span>
-                      </button>
-                      <span className="absolute top-1 right-1 flex items-center opacity-0 focus-within:opacity-100 group-hover/skill:opacity-100">
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                size="icon-xs"
-                                variant="ghost-muted"
-                                aria-label={isPinned ? `Unpin ${skill.name}` : `Pin ${skill.name}`}
-                                onClick={() => togglePin(pinKey)}
-                              />
-                            }
-                          >
-                            {isPinned ? <PinOffIcon aria-hidden /> : <PinIcon aria-hidden />}
-                          </TooltipTrigger>
-                          <TooltipPopup>{isPinned ? "Unpin" : "Pin to the top"}</TooltipPopup>
-                        </Tooltip>
-                        {isRemovableSkill(skill) ? (
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <Button
-                                  size="icon-xs"
-                                  variant="ghost-muted"
-                                  aria-label={`Remove ${skill.name}`}
-                                  onClick={() => void remove(skill)}
-                                />
-                              }
-                            >
-                              <Trash2Icon aria-hidden />
-                            </TooltipTrigger>
-                            <TooltipPopup>Move to the Trash</TooltipPopup>
-                          </Tooltip>
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+                          <Trash2Icon aria-hidden />
+                        </TooltipTrigger>
+                        <TooltipPopup>Move to the Trash</TooltipPopup>
+                      </Tooltip>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+            {shown.skills.length === 0 ? (
+              <li className="px-1.5 py-2 text-xs text-muted-foreground">No skills match.</li>
+            ) : null}
+          </ul>
         </div>
-      </div>
+      )}
     </ThreadDetailsSection>
   );
 }

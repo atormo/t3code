@@ -2537,6 +2537,7 @@ export const layerWsRpc = (
         [WS_METHODS.mcpStatusGet]: (input) => mcpStatus.get(input.threadId),
         [WS_METHODS.mcpStatusAction]: (input) => mcpStatus.act(input).pipe(Effect.as({})),
         [WS_METHODS.skillsRemove]: (input) => skillsAdmin.remove(input.path).pipe(Effect.as({})),
+        [WS_METHODS.skillsInspect]: (input) => skillsAdmin.inspect(input.path),
         [WS_METHODS.serverRunStorageCleanup]: () => storageCleanup.runNow,
         [WS_METHODS.serverGetStorageCleanupReport]: () => storageCleanup.reports,
         [WS_METHODS.serverGetDatabaseStorage]: () => databaseStorage.status,
