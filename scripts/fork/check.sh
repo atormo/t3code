@@ -26,10 +26,12 @@ vp test run \
   apps/web/src/components/files/FilePreviewPanel.browser.test.tsx \
   apps/web/src/rightPanelStore.test.ts \
   apps/desktop/src/fork/forkUpdates.test.ts \
-  apps/server/src/mcpStatus/McpStatus.test.ts \
-  apps/web/src/fork/statusbar/mcpStatus.logic.test.ts
+  apps/server/src/mcpStatus apps/server/src/skills/McpStatus.test.ts \
+  apps/web/src/fork/statusbar/mcpStatus.logic.test.ts \
+  apps/server/src/skills/skillRemoval.test.ts \
+  apps/web/src/fork/skills/skillsSection.logic.test.ts
 
 echo "==> Lint fork code"
-vp lint apps/web/src/fork apps/server/src/notes apps/server/src/mcpStatus apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/fork
+vp lint apps/web/src/fork apps/server/src/notes apps/server/src/mcpStatus apps/server/src/skills apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/fork
 
 echo "Fork checks passed."

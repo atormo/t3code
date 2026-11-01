@@ -111,6 +111,7 @@ import * as ServerConfigModule from "./config.ts";
 import * as Keybindings from "./keybindings.ts";
 import * as Notes from "./notes/Notes.ts";
 import * as McpStatus from "./mcpStatus/McpStatus.ts";
+import * as SkillsAdmin from "./skills/SkillsAdmin.ts";
 import * as ServerSettings from "./serverSettings.ts";
 
 import * as EventStore from "./orchestration-v2/EventStore.ts";
@@ -582,6 +583,7 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(ThreadManagement.ThreadManagementService)({}),
   Layer.mock(Notes.Notes)({}),
   Layer.mock(McpStatus.McpStatus)({}),
+  Layer.mock(SkillsAdmin.SkillsAdmin)({}),
   Layer.mock(ThreadSearch.ThreadSearch)({}),
   Layer.mock(UsageService.UsageService)({}),
   Layer.mock(VcsProvisioningService.VcsProvisioningService)({}),

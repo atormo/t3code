@@ -22,13 +22,18 @@ import { mcpBarSummary, mcpServerLabel, MCP_STATUS_LABEL, sortMcpServers } from 
 const DOT_CLASS: Record<ProviderMcpServer["status"], string> = {
   connected: "bg-success",
   "needs-auth": "bg-warning",
-  failed: "bg-destructive",
+  failed: "bg-error",
   pending: "bg-muted-foreground/50",
   disabled: "bg-muted-foreground/50",
 };
 
 function StatusDot({ status }: { status: ProviderMcpServer["status"] }) {
-  return <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", DOT_CLASS[status])} />;
+  return (
+    <span
+      aria-hidden
+      className={cn("inline-block size-2 shrink-0 rounded-full", DOT_CLASS[status])}
+    />
+  );
 }
 
 /** The thread's MCP servers: a count in the bar, and their status and actions when opened. */
@@ -127,7 +132,6 @@ export function McpStatusItem() {
         <span className="tabular-nums">
           MCP{servers.length > 0 ? ` ${summary.connected}/${servers.length}` : ""}
         </span>
-        {summary.attention !== null ? <StatusDot status={summary.attention} /> : null}
       </PopoverTrigger>
       <PopoverPopup side="top" align="end" sideOffset={8} className="w-80">
         <div className="flex flex-col gap-1 text-xs">

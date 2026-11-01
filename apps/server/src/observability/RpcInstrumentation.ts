@@ -61,6 +61,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.notesSetTabs]: "notes",
   [WS_METHODS.mcpStatusGet]: "provider",
   [WS_METHODS.mcpStatusAction]: "provider",
+  [WS_METHODS.skillsRemove]: "provider",
   [WS_METHODS.serverRunStorageCleanup]: "server",
   [WS_METHODS.serverGetStorageCleanupReport]: "server",
   [WS_METHODS.serverGetDatabaseStorage]: "server",

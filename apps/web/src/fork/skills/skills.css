@@ -1,0 +1,7 @@
+/* Two lines of description keep long skill blurbs from stretching the list. */
+[data-fork-skill-description] {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

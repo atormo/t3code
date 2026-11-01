@@ -22,6 +22,7 @@ import { OpenInPicker } from "./OpenInPicker";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
+import { ThreadSkillsSection } from "../../fork/skills/ThreadSkillsSection";
 import { ThreadServersPanel } from "./ThreadServersPanel";
 import {
   ThreadDetailsContext,
@@ -255,6 +256,17 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                   threadId={props.threadId}
                   showLineage={visible.lineage}
                   showSideChats={visible.sideChats}
+                />
+              ) : null}
+
+              {density === "full" ? (
+                <ThreadSkillsSection
+                  environmentId={props.environmentId}
+                  threadId={props.threadId}
+                  draftId={props.draftId}
+                  isServerThread={props.isServerThread}
+                  gitCwd={props.gitCwd}
+                  onComposerFocusRequest={props.onComposerFocusRequest}
                 />
               ) : null}
 

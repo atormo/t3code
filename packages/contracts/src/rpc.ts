@@ -172,6 +172,7 @@ import {
   McpStatusInput,
   McpStatusResult,
 } from "./mcpStatus.ts";
+import { SkillRemoveError, SkillRemoveInput } from "./skillsAdmin.ts";
 import { OrchestrationSearchThreadsError } from "./threadSearch.ts";
 import {
   ProviderUploadFeedbackError,
@@ -524,6 +525,7 @@ export const WS_METHODS = {
   notesSetTabs: "notes.setTabs",
   mcpStatusGet: "mcpStatus.get",
   mcpStatusAction: "mcpStatus.action",
+  skillsRemove: "skills.remove",
   serverRunStorageCleanup: "server.runStorageCleanup",
   serverGetStorageCleanupReport: "server.getStorageCleanupReport",
   serverGetDatabaseStorage: "server.getDatabaseStorage",
@@ -678,6 +680,12 @@ const WsMcpStatusActionRpc = Rpc.make(WS_METHODS.mcpStatusAction, {
   payload: McpServerActionInput,
   success: Schema.Struct({}),
   error: Schema.Union([McpStatusError, EnvironmentAuthorizationError]),
+});
+
+const WsSkillsRemoveRpc = Rpc.make(WS_METHODS.skillsRemove, {
+  payload: SkillRemoveInput,
+  success: Schema.Struct({}),
+  error: Schema.Union([SkillRemoveError, EnvironmentAuthorizationError]),
 });
 
 const WsServerProbeRpc = Rpc.make(WS_METHODS.serverProbe, {
@@ -2057,6 +2065,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsNotesSetTabsRpc,
   WsMcpStatusGetRpc,
   WsMcpStatusActionRpc,
+  WsSkillsRemoveRpc,
   WsServerRunStorageCleanupRpc,
   WsServerGetStorageCleanupReportRpc,
   WsServerGetDatabaseStorageRpc,

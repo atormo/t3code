@@ -1443,6 +1443,10 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:mcp-status:action",
       tag: WS_METHODS.mcpStatusAction,
     }),
+    removeSkill: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:skills:remove",
+      tag: WS_METHODS.skillsRemove,
+    }),
     updateSettings,
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {
