@@ -59,6 +59,9 @@ export function SkillCard(props: {
               {ORIGIN_LABEL[skillOrigin(skill)]}
             </span>
           </div>
+          {details?.author ? (
+            <span className="-mt-1 text-2xs text-muted-foreground">by {details.author}</span>
+          ) : null}
           <p className="max-h-32 overflow-y-auto text-foreground/90 leading-relaxed">
             {skill.description ?? skill.shortDescription ?? "No description."}
           </p>

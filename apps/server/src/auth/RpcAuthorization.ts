@@ -91,6 +91,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.mcpStatusAction]: AuthOrchestrationOperateScope,
   [WS_METHODS.skillsRemove]: AuthOrchestrationOperateScope,
   [WS_METHODS.skillsInspect]: AuthOrchestrationReadScope,
+  [WS_METHODS.skillsAuthors]: AuthOrchestrationReadScope,
   [WS_METHODS.serverGetStorageCleanupReport]: AuthOrchestrationReadScope,
   [WS_METHODS.serverGetDatabaseStorage]: AuthOrchestrationReadScope,
   [WS_METHODS.peerLinksList]: AuthAccessReadScope,

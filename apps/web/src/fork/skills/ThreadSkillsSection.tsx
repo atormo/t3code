@@ -5,8 +5,15 @@ import {
   resolveProviderSkillsForCwd,
 } from "@t3tools/client-runtime/providerSkills";
 import type { EnvironmentId, ServerProviderSkill, ThreadId } from "@t3tools/contracts";
-import { ChevronDownIcon, PinIcon, PinOffIcon, SearchIcon, Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import {
+  ChevronDownIcon,
+  PinIcon,
+  PinOffIcon,
+  RotateCwIcon,
+  SearchIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 import { ProviderInstanceIcon } from "../../components/chat/ProviderInstanceIcon";
 import { ThreadDetailsSection } from "../../components/chat/ThreadDetailsSection";
@@ -60,8 +67,65 @@ export function ThreadSkillsSection(props: {
   const setCollapsed = useSkillPinsStore((store) => store.setCollapsed);
   const [filter, setFilter] = useState<SkillFilter>("all");
   const removeSkill = useAtomCommand(serverEnvironment.removeSkill, { reportFailure: true });
+  const getSkillAuthors = useAtomCommand(serverEnvironment.getSkillAuthors, {
+    reportFailure: false,
+  });
+  const [authors, setAuthors] = useState<ReadonlyMap<string, string>>(new Map());
+  const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
+    reportFailure: false,
+  });
+  const [rescanning, setRescanning] = useState(false);
   const [query, setQuery] = useState("");
   const [removedPaths, setRemovedPaths] = useState<ReadonlySet<string>>(new Set());
+
+  const skillPaths =
+    provider === null
+      ? []
+      : resolveProviderSkillsForCwd(provider, props.gitCwd).map((skill) => skill.path);
+  const skillPathsKey = skillPaths.join("\n");
+  const loadAuthors = useEffectEvent(() => {
+    if (skillPaths.length === 0) return;
+    void getSkillAuthors({ environmentId: props.environmentId, input: { paths: skillPaths } }).then(
+      (result) => {
+        if (result._tag !== "Success") return;
+        setAuthors(
+          new Map(
+            result.value.authors.flatMap((entry) =>
+              entry.author === null ? [] : [[entry.path, entry.author] as const],
+            ),
+          ),
+        );
+      },
+    );
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync, react/exhaustive-effect-dependencies -- asks the server who made each skill when the provider's skill list changes
+  useEffect(() => loadAuthors(), [skillPathsKey]);
+
+  /** Skills only rescan every few minutes; this asks the provider to look again now. */
+  const rescan = () => {
+    if (provider === null || rescanning) return;
+    setRescanning(true);
+    void refreshProviders({
+      environmentId: props.environmentId,
+      input: {
+        instanceId: provider.instanceId,
+        fresh: true,
+        ...(props.gitCwd === null ? {} : { cwd: props.gitCwd }),
+      },
+    }).finally(() => setRescanning(false));
+  };
+  const rescanOnReturn = useEffectEvent(rescan);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- rescans when you come back to the app, so skills added elsewhere show up
+  useEffect(() => {
+    let last = 0;
+    const onFocus = () => {
+      if (Date.now() - last < 30_000) return;
+      last = Date.now();
+      rescanOnReturn();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   if (provider === null) return null;
   const skills = dedupeProviderSkillsByName(
@@ -106,6 +170,15 @@ export function ThreadSkillsSection(props: {
             size="compact"
           />
           {skills.length}
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label="Look for new skills"
+            disabled={rescanning}
+            onClick={rescan}
+          >
+            <RotateCwIcon aria-hidden className={cn(rescanning && "animate-spin")} />
+          </Button>
           <Button
             size="icon-xs"
             variant="ghost-muted"
@@ -168,6 +241,11 @@ export function ThreadSkillsSection(props: {
                         <PinIcon aria-label="Pinned" className="size-3 text-muted-foreground" />
                       ) : null}
                     </span>
+                    {authors.get(skill.path) ? (
+                      <span className="text-2xs text-muted-foreground/70">
+                        by {authors.get(skill.path)}
+                      </span>
+                    ) : null}
                     <span data-fork-skill-description="" className="text-xs text-muted-foreground">
                       {skill.shortDescription ?? skill.description ?? ""}
                     </span>

@@ -29,6 +29,7 @@ vp test run \
   apps/server/src/mcpStatus apps/server/src/skills/McpStatus.test.ts \
   apps/web/src/fork/statusbar/mcpStatus.logic.test.ts \
   apps/server/src/skills/skillRemoval.test.ts \
+  apps/server/src/skills/skillAuthors.test.ts \
   apps/web/src/fork/skills/skillsSection.logic.test.ts
 
 echo "==> Lint fork code"

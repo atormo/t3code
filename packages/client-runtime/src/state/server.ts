@@ -1451,6 +1451,10 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:skills:inspect",
       tag: WS_METHODS.skillsInspect,
     }),
+    getSkillAuthors: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:skills:authors",
+      tag: WS_METHODS.skillsAuthors,
+    }),
     updateSettings,
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {
