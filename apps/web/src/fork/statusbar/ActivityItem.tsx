@@ -1,7 +1,6 @@
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { ActivityIcon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useEffectEvent, useRef } from "react";
 
 import {
   resolveSidebarFolderDot,
@@ -9,19 +8,12 @@ import {
 } from "../../components/Sidebar.logic";
 import { Button } from "../../components/ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../../components/ui/popover";
-import { toastManager } from "../../components/ui/toast";
-import { stackedThreadToast } from "../../components/ui/toastHelpers";
 import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
 import { cn } from "../../lib/utils";
 import { useProjects, useThreadShells } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { useUiStateStore } from "../../uiStateStore";
-import {
-  ACTIVITY_LABEL,
-  type ActivityStatus,
-  newlyNeedingYou,
-  summarizeActivity,
-} from "./activity.logic";
+import { ACTIVITY_LABEL, type ActivityStatus, summarizeActivity } from "./activity.logic";
 
 const DOT_CLASS: Record<ActivityStatus, string> = {
   attention: "bg-warning",
@@ -41,7 +33,6 @@ function Dot({ status }: { status: ActivityStatus }) {
 
 /**
  * Every thread that is working, waiting on you or finished unseen, across projects and spaces.
- * A thread you are not looking at that finishes or needs you also raises a notice.
  */
 export function ActivityItem() {
   const navigate = useNavigate();
@@ -79,41 +70,6 @@ export function ActivityItem() {
 
   const open = (ref: (typeof threads)[number]["ref"]) =>
     void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(ref) });
-
-  // Notices compare against the previous render's statuses, kept outside React state.
-  const previousRef = useRef<Map<string, ActivityStatus> | null>(null);
-  const statusKey = threads.map((thread) => `${thread.key}=${thread.status}`).join("|");
-  const notify = useEffectEvent(() => {
-    const previous = previousRef.current;
-    previousRef.current = new Map(threads.map((thread) => [thread.key, thread.status]));
-    if (previous === null) return;
-    for (const thread of newlyNeedingYou(previous, threads)) {
-      if (thread.key === currentKey) continue;
-      const full = threads.find((candidate) => candidate.key === thread.key);
-      if (!full) continue;
-      toastManager.add(
-        stackedThreadToast({
-          type:
-            full.status === "failed"
-              ? "error"
-              : full.status === "attention"
-                ? "warning"
-                : "success",
-          title:
-            full.status === "attention"
-              ? `${full.title} needs you`
-              : full.status === "failed"
-                ? `${full.title} failed`
-                : `${full.title} is done`,
-          description: full.project,
-          timeout: 10_000,
-          actionProps: { children: "Open", onClick: () => open(full.ref) },
-        }),
-      );
-    }
-  });
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync, react/exhaustive-effect-dependencies -- raises a toast when a thread you are not viewing finishes or starts needing you
-  useEffect(() => notify(), [statusKey]);
 
   if (sorted.length === 0) return null;
   const parts = (["attention", "failed", "unread", "working"] as const).filter(

@@ -22,20 +22,3 @@ export function summarizeActivity<T extends ActivityThread>(
   for (const thread of threads) counts[thread.status] += 1;
   return { sorted: threads.toSorted((a, b) => ORDER[a.status] - ORDER[b.status]), counts };
 }
-
-/**
- * Threads that just finished or started needing you, so a notice can say so. A thread already in
- * that state, or seen for the first time, does not count.
- */
-export function newlyNeedingYou(
-  previous: ReadonlyMap<string, ActivityStatus>,
-  current: readonly ActivityThread[],
-): ActivityThread[] {
-  return current.filter((thread) => {
-    if (thread.status !== "attention" && thread.status !== "unread" && thread.status !== "failed") {
-      return false;
-    }
-    const before = previous.get(thread.key);
-    return before === "working";
-  });
-}
