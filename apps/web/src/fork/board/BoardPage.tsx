@@ -1,15 +1,22 @@
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import {
+  derivePhysicalProjectKey,
+  selectProjectGroupingSettings,
+} from "@t3tools/client-runtime/state/project-grouping";
 import { useNavigate } from "@tanstack/react-router";
-import { type DragEvent, useState } from "react";
+import { type CSSProperties, type DragEvent, useState } from "react";
 
 import {
   resolveSidebarFolderDot,
   resolveThreadLastVisitedAt,
 } from "../../components/Sidebar.logic";
+import { Badge } from "../../components/ui/badge";
+import { useClientSettings } from "../../hooks/useSettings";
 import { useThreadActions } from "../../hooks/useThreadActions";
 import { cn } from "../../lib/utils";
 import { useProjects, useThreadShells } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
+import { buildPhysicalToLogicalProjectKeyMap } from "../../sidebarProjectGrouping";
 import { useUiStateStore } from "../../uiStateStore";
 import {
   BOARD_COLUMNS,
@@ -25,6 +32,13 @@ const COLUMN_DOT: Record<BoardColumn, string> = {
   review: "bg-warning",
   done: "bg-success",
 };
+
+/** A steady colour per sidebar group, so the same group always looks the same. */
+function groupColor(id: string): string {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return `oklch(0.7 0.14 ${Math.abs(hash) % 360})`;
+}
 
 const DRAG_TYPE = "application/x-t3-fork-board-thread";
 
@@ -44,9 +58,28 @@ export function BoardPage() {
   const { settleThread, unsettleThread } = useThreadActions();
   const [dropTarget, setDropTarget] = useState<BoardColumn | null>(null);
   const [now] = useState(() => Date.now());
+  const groupingSettings = useClientSettings(selectProjectGroupingSettings);
+  const userGroups = useUiStateStore((store) => store.sidebarProjectGroups);
 
   const projectName = new Map(
     projects.map((project) => [`${project.environmentId}:${project.id}`, project.title] as const),
+  );
+  const logicalKeyByPhysical = buildPhysicalToLogicalProjectKeyMap({
+    projects,
+    settings: groupingSettings,
+    primaryEnvironmentId: null,
+  });
+  const userGroupByLogicalKey = new Map(
+    userGroups.flatMap((group) => group.projectKeys.map((key) => [key, group] as const)),
+  );
+  const userGroupByProject = new Map(
+    projects.map((project) => {
+      const logical = logicalKeyByPhysical.get(derivePhysicalProjectKey(project));
+      return [
+        `${project.environmentId}:${project.id}`,
+        logical === undefined ? undefined : userGroupByLogicalKey.get(logical),
+      ] as const;
+    }),
   );
   const cards = shells.flatMap((thread) => {
     if (thread.archivedAt !== null) return [];
@@ -65,6 +98,7 @@ export function BoardPage() {
         column: boardColumnOf(dot, isSettled(thread)),
         title: thread.title,
         project: projectName.get(`${thread.environmentId}:${thread.projectId}`) ?? "",
+        group: userGroupByProject.get(`${thread.environmentId}:${thread.projectId}`) ?? null,
         updatedAt: thread.updatedAt,
       },
     ];
@@ -151,6 +185,16 @@ export function BoardPage() {
                       }
                       className="flex w-full flex-col items-start gap-0.5 rounded-lg border bg-background px-3 py-2 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
+                      {card.group ? (
+                        <Badge
+                          size="sm"
+                          variant="label"
+                          className="max-w-full"
+                          style={{ "--label": groupColor(card.group.id) } as CSSProperties}
+                        >
+                          <span className="truncate">{card.group.name}</span>
+                        </Badge>
+                      ) : null}
                       <span className="line-clamp-2 font-medium text-sm">{card.title}</span>
                       <span className="flex w-full items-center justify-between gap-2 text-muted-foreground text-xs">
                         <span className="truncate">{card.project}</span>
