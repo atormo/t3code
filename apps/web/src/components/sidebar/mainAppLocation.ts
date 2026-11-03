@@ -25,7 +25,8 @@ export function startMainAppLocationTracking(router: AnyRouter): () => void {
     const { pathname, href } = router.state.location;
     if (isAppModalPage(pathname) || SHELL_LESS_PATHS.has(pathname)) return;
     appModalReturnHref = href;
-    if (!isSidebarUtilityPage(pathname)) mainAppHref = href;
+    // Fork: the board toggles back to the last view, so it is never that view itself.
+    if (!isSidebarUtilityPage(pathname) && pathname !== "/board") mainAppHref = href;
   };
   record();
   return router.subscribe("onResolved", record);

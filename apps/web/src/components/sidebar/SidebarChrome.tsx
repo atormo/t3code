@@ -231,6 +231,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   const isOnUtilityPage = useLocation({
     select: (location) => isSidebarUtilityPage(location.pathname),
   });
+  const isOnBoard = useLocation({ select: (location) => location.pathname === "/board" });
   const pullRequestsSupported = usePullRequestsSupported();
   const closeMobileSidebar = () => {
     if (isMobile) {
@@ -293,7 +294,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
           <SidebarUtilityItem
             icon={<SquareKanbanIcon />}
             label="Board"
-            onClick={() => void navigate({ to: "/board" })}
+            onClick={() => void (isOnBoard ? navigateToMainApp() : navigate({ to: "/board" }))}
           />
         </>
       )}
