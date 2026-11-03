@@ -18,6 +18,8 @@ import { useProjects, useThreadShells } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { buildPhysicalToLogicalProjectKeyMap } from "../../sidebarProjectGrouping";
 import { useUiStateStore } from "../../uiStateStore";
+import { isParkedGroup } from "../sidebar/projectOrganization";
+import { useSidebarSpacesStore } from "../sidebar/sidebarSpacesStore";
 import {
   BOARD_COLUMNS,
   type BoardColumn,
@@ -60,6 +62,7 @@ export function BoardPage() {
   const [now] = useState(() => Date.now());
   const groupingSettings = useClientSettings(selectProjectGroupingSettings);
   const userGroups = useUiStateStore((store) => store.sidebarProjectGroups);
+  const spaces = useSidebarSpacesStore((store) => store.spaces);
 
   const projectName = new Map(
     projects.map((project) => [`${project.environmentId}:${project.id}`, project.title] as const),
@@ -69,15 +72,21 @@ export function BoardPage() {
     settings: groupingSettings,
     primaryEnvironmentId: null,
   });
-  const userGroupByLogicalKey = new Map(
-    userGroups.flatMap((group) => group.projectKeys.map((key) => [key, group] as const)),
-  );
+  // The tag is the project's space (sidebar tab), or its folder when it has no space.
+  const tagByLogicalKey = new Map<string, { id: string; name: string }>();
+  for (const group of userGroups) {
+    if (isParkedGroup(group)) continue;
+    for (const key of group.projectKeys) tagByLogicalKey.set(key, group);
+  }
+  for (const space of spaces) {
+    for (const key of space.projectKeys) tagByLogicalKey.set(key, space);
+  }
   const userGroupByProject = new Map(
     projects.map((project) => {
       const logical = logicalKeyByPhysical.get(derivePhysicalProjectKey(project));
       return [
         `${project.environmentId}:${project.id}`,
-        logical === undefined ? undefined : userGroupByLogicalKey.get(logical),
+        logical === undefined ? undefined : tagByLogicalKey.get(logical),
       ] as const;
     }),
   );
