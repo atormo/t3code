@@ -1,4 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -17,7 +18,8 @@ const decodeSource = Schema.decodeUnknownEffect(
 const readSourceRepo = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const raw = yield* fileSystem.readFileString(path.join(process.env.HOME ?? "", SOURCE_FILE_NAME));
+  const home = yield* Config.String("HOME").pipe(Config.withDefault(""));
+  const raw = yield* fileSystem.readFileString(path.join(home, SOURCE_FILE_NAME));
   return (yield* decodeSource(raw)).repo;
 }).pipe(Effect.orElseSucceed(() => null));
 

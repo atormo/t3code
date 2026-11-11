@@ -4,6 +4,7 @@ import {
   type SkillInspectResult,
 } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
+import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -34,6 +35,7 @@ const make = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const home = yield* Config.String("HOME").pipe(Config.withDefault(""));
 
   const git = (cwd: string, args: readonly string[]) =>
     spawner
@@ -53,7 +55,7 @@ const make = Effect.gen(function* () {
         }
       }),
     );
-  const skillLock = readJson(path.join(process.env.HOME ?? "", ".agents", ".skill-lock.json"));
+  const skillLock = readJson(path.join(home, ".agents", ".skill-lock.json"));
 
   /** Install record first, then the skill's own front matter, LICENSE, and its plugin's manifest. */
   const authorOf = Effect.fn("SkillsAdmin.authorOf")(function* (directory: string, lock: unknown) {
@@ -124,7 +126,7 @@ const make = Effect.gen(function* () {
         reason: "Only your own and project skills can be removed here.",
       });
     }
-    const trash = path.join(process.env.HOME ?? "", ".Trash");
+    const trash = path.join(home, ".Trash");
     const name = path.basename(directory);
     const target = (yield* fileSystem
       .exists(path.join(trash, name))
