@@ -1,17 +1,7 @@
-import {
-  findProjectByPath,
-  inferProjectTitleFromPath,
-} from "@t3tools/client-runtime/state/projects";
 import { type DragEvent, useRef, useState } from "react";
 
-import { reportProjectFailure } from "../../hooks/useProjectGroupUpdate";
 import { updateClientSettings, useClientSettings } from "../../hooks/useSettings";
-import { newProjectId } from "../../lib/utils";
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
-import { readProjects } from "../../state/entities";
-import { usePrimaryEnvironmentId } from "../../state/environments";
-import { projectEnvironment } from "../../state/projects";
-import { useAtomCommand } from "../../state/use-atom-command";
 import { type SidebarProjectGroup, useUiStateStore } from "../../uiStateStore";
 import { isParkedGroup } from "./projectOrganization";
 import {
@@ -41,22 +31,10 @@ export interface SidebarRowDragProps {
   readonly onDragEnd: () => void;
 }
 
-/** Folder names a Finder drop holds, read synchronously while the drop event is live. */
-function droppedDirectoryPaths(event: DragEvent<HTMLElement>): string[] {
-  const bridge = window.desktopBridge;
-  if (!bridge) return [];
-  return [...event.dataTransfer.items].flatMap((item) => {
-    if (item.kind !== "file" || item.webkitGetAsEntry()?.isDirectory !== true) return [];
-    const file = item.getAsFile();
-    const path = file ? bridge.getPathForFile(file) : "";
-    return path ? [path] : [];
-  });
-}
-
 /**
  * Drag and drop for the boring sidebar: drag a project onto another to reorder it (it joins
  * that project's folder), onto a folder header to move it in, drag folder headers to reorder
- * them, and drop Finder folders on the list to add them as projects.
+ * them. Finder folders dropped on the sidebar are upstream's `SidebarFolderDrop`.
  */
 export function useSidebarProjectDrag(input: {
   readonly folders: readonly { readonly group: SidebarProjectSnapshot }[] | null;
@@ -65,8 +43,6 @@ export function useSidebarProjectDrag(input: {
   const dragged = useRef<Dragged | null>(null);
   const [target, setTarget] = useState<{ id: string; mark: DropMark } | null>(null);
   const sortOrder = useClientSettings((settings) => settings.sidebarProjectSortOrder);
-  const environmentId = usePrimaryEnvironmentId();
-  const createProject = useAtomCommand(projectEnvironment.create, { reportFailure: false });
   const folders = input.folders ?? [];
   const folderIndex = (projectKey: string) =>
     folders.findIndex((folder) => folder.group.projectKey === projectKey);
@@ -205,41 +181,5 @@ export function useSidebarProjectDrag(input: {
     };
   };
 
-  const addProjects = async (paths: readonly string[]) => {
-    if (environmentId === null) return;
-    const existing = readProjects().filter((project) => project.environmentId === environmentId);
-    for (const workspaceRoot of paths) {
-      if (findProjectByPath(existing, workspaceRoot)) continue;
-      const result = await createProject({
-        environmentId,
-        input: {
-          projectId: newProjectId(),
-          title: inferProjectTitleFromPath(workspaceRoot),
-          workspaceRoot,
-          createWorkspaceRootIfMissing: false,
-          defaultModelSelection: null,
-        },
-      });
-      reportProjectFailure(`Could not add ${workspaceRoot}`, result);
-    }
-  };
-
-  /** For the list itself: Finder folders dropped anywhere on it become projects. */
-  const importDropProps = {
-    onDragOver: (event: DragEvent<HTMLElement>) => {
-      if (dragged.current || !window.desktopBridge) return;
-      if (!event.dataTransfer.types.includes("Files")) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-    },
-    onDrop: (event: DragEvent<HTMLElement>) => {
-      if (dragged.current) return;
-      const paths = droppedDirectoryPaths(event);
-      if (paths.length === 0) return;
-      event.preventDefault();
-      void addProjects(paths);
-    },
-  };
-
-  return { projectRowProps, groupRowProps, tabDragProps, importDropProps };
+  return { projectRowProps, groupRowProps, tabDragProps };
 }
