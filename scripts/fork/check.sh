@@ -15,6 +15,10 @@ vp run \
   --filter @t3tools/desktop \
   typecheck
 
+echo "==> Browser for the browser tests"
+# Upstream bumps Playwright now and then; fetch the browser that version needs (no-op when present).
+apps/web/node_modules/.bin/playwright install chromium-headless-shell
+
 echo "==> Fork tests"
 vp test run \
   apps/server/src/notes/Notes.test.ts \
