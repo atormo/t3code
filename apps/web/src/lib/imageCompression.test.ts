@@ -345,7 +345,7 @@ describe("HEIC attachment preparation", () => {
     expect(createImageBitmap).toHaveBeenCalledTimes(1);
     expect(canvasSizes).toEqual([
       { width: 2000, height: 1500 },
-      { width: 256, height: 256 },
+      { width: 512, height: 384 },
     ]);
   });
 

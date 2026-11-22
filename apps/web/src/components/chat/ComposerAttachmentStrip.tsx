@@ -34,6 +34,10 @@ import { Button } from "../ui/button";
 import { Dialog, DialogPopup, DialogTitle } from "../ui/dialog";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { ComposerImageThumbnail } from "./ComposerImageThumbnail";
+import {
+  COMPOSER_IMAGE_CLASS_NAME,
+  COMPOSER_IMAGE_TILE_CLASS_NAME,
+} from "../../fork/chatview/screenshotMedia";
 import { composerFloatingLayerProps } from "./composerEventScope";
 import type { PreparingComposerImage } from "./preparingComposerImages";
 import {
@@ -213,14 +217,18 @@ export function ComposerAttachmentMediaRow({
                 "group/attachment shrink-0 snap-start bg-background",
                 source?.kind === "snap-shot"
                   ? SNAP_SHOT_ATTACHMENT_FRAME_CLASS
-                  : "relative h-16 w-16 overflow-hidden rounded-lg border border-border/80",
+                  : COMPOSER_IMAGE_TILE_CLASS_NAME,
                 snapShotAnimationPending && "invisible",
               )}
             >
               {!ready || ready.previewUrl ? (
                 <button
                   type="button"
-                  className={cn("h-full w-full", ready && "cursor-zoom-in")}
+                  className={cn(
+                    "h-full",
+                    source?.kind === "snap-shot" ? "w-full" : "block",
+                    ready && "cursor-zoom-in",
+                  )}
                   aria-label={`Preview ${image.name}`}
                   disabled={!ready}
                   onClick={() => {
@@ -232,7 +240,11 @@ export function ComposerAttachmentMediaRow({
                   <ComposerImageThumbnail
                     file={image.file}
                     alt={image.name}
-                    className="h-full w-full object-cover"
+                    className={
+                      source?.kind === "snap-shot"
+                        ? "h-full w-full object-cover"
+                        : COMPOSER_IMAGE_CLASS_NAME
+                    }
                     fallback={
                       ready && isHeicImageFile({ name: ready.name, type: ready.mimeType }) ? (
                         <AttachmentImage
@@ -240,7 +252,11 @@ export function ComposerAttachmentMediaRow({
                           mimeType={ready.mimeType}
                           src={ready.previewUrl}
                           alt=""
-                          className="h-full w-full object-cover"
+                          className={
+                            source?.kind === "snap-shot"
+                              ? "h-full w-full object-cover"
+                              : COMPOSER_IMAGE_CLASS_NAME
+                          }
                         />
                       ) : (
                         <ComposerImageFallback />

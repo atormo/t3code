@@ -1,13 +1,23 @@
 import type { ServerProviderSkill } from "@t3tools/contracts";
 import { resolveProviderSkillSourceKind } from "@t3tools/client-runtime/providerSkills";
 
-export type SkillFilter = "all" | "project" | "plugin" | "pinned";
+import { COLLECTIONS, type CollectionId, collectionOf, presentSkill } from "./skillCatalog";
+
+/** A collection of its own, your pinned skills, or everything. */
+export type SkillFilter = CollectionId | "pinned" | "all";
+
+export const SKILL_FILTERS: readonly SkillFilter[] = [
+  ...COLLECTIONS.map((collection) => collection.id),
+  "pinned",
+  "all",
+];
 
 export const SKILL_FILTER_LABEL: Record<SkillFilter, string> = {
-  all: "All",
-  project: "This project",
-  plugin: "Plugins",
+  ...(Object.fromEntries(
+    COLLECTIONS.map((collection) => [collection.id, collection.label]),
+  ) as Record<CollectionId, string>),
   pinned: "Pinned",
+  all: "All",
 };
 
 export function skillPinKey(driver: string, skill: Pick<ServerProviderSkill, "name">): string {
@@ -55,19 +65,21 @@ export function filterSkills(
   const isPinned = (skill: ServerProviderSkill) => pinnedKeys.has(skillPinKey(driver, skill));
   const inFilter = (skill: ServerProviderSkill, candidate: SkillFilter) =>
     candidate === "all" ||
-    (candidate === "pinned" ? isPinned(skill) : groupOf(skill) === candidate);
-  const matches = skills.filter(
-    (skill) =>
-      needle === "" ||
-      skill.name.toLowerCase().includes(needle) ||
-      (skill.shortDescription ?? skill.description ?? "").toLowerCase().includes(needle),
-  );
-  const counts = {
-    all: matches.length,
-    project: matches.filter((skill) => inFilter(skill, "project")).length,
-    plugin: matches.filter((skill) => inFilter(skill, "plugin")).length,
-    pinned: matches.filter((skill) => inFilter(skill, "pinned")).length,
-  };
+    (candidate === "pinned" ? isPinned(skill) : collectionOf(skill) === candidate);
+  const matches = skills.filter((skill) => {
+    if (needle === "") return true;
+    const shown = presentSkill(skill);
+    return [skill.name, skill.shortDescription ?? skill.description ?? "", shown.title, shown.pitch]
+      .join("\n")
+      .toLowerCase()
+      .includes(needle);
+  });
+  const counts = Object.fromEntries(
+    SKILL_FILTERS.map((candidate) => [
+      candidate,
+      matches.filter((skill) => inFilter(skill, candidate)).length,
+    ]),
+  ) as Record<SkillFilter, number>;
   return {
     counts,
     skills: matches

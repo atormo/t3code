@@ -36,10 +36,13 @@ vp test run \
   apps/web/src/fork/statusbar/activity.logic.test.ts \
   apps/web/src/fork/board/board.logic.test.ts \
   apps/web/src/fork/chatview/disclosureDefaults.test.ts \
+  apps/web/src/fork/chatview/screenshotMedia.test.ts \
+  apps/web/src/lib/imageCompression.test.ts \
   apps/web/src/components/chat/MessagesTimeline.logic.test.ts \
   apps/server/src/skills/skillRemoval.test.ts \
   apps/server/src/skills/skillAuthors.test.ts \
-  apps/web/src/fork/skills/skillsSection.logic.test.ts
+  apps/web/src/fork/skills/skillsSection.logic.test.ts \
+  apps/web/src/fork/skills/skillCatalog.test.ts
 
 echo "==> Lint fork code"
 vp lint apps/web/src/fork apps/server/src/notes apps/server/src/mcpStatus apps/server/src/skills apps/desktop/src/ipc/methods/keepAwake.ts apps/desktop/src/ipc/methods/appIcon.ts apps/desktop/src/fork

@@ -7,6 +7,8 @@ import {
 import type { EnvironmentId, ServerProviderSkill, ThreadId } from "@t3tools/contracts";
 import {
   ChevronDownIcon,
+  LayoutGridIcon,
+  ListIcon,
   PinIcon,
   PinOffIcon,
   RotateCwIcon,
@@ -28,9 +30,11 @@ import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useSkillPinsStore } from "./skillPinsStore";
 import { SkillCard } from "./SkillCard";
+import { groupCollectionSkills, presentSkill } from "./skillCatalog";
 import {
   filterSkills,
   isRemovableSkill,
+  SKILL_FILTERS,
   SKILL_FILTER_LABEL,
   type SkillFilter,
   skillPinKey,
@@ -65,7 +69,12 @@ export function ThreadSkillsSection(props: {
   const togglePin = useSkillPinsStore((store) => store.toggle);
   const collapsed = useSkillPinsStore((store) => store.collapsed);
   const setCollapsed = useSkillPinsStore((store) => store.setCollapsed);
-  const [filter, setFilter] = useState<SkillFilter>("all");
+  const view = useSkillPinsStore((store) => store.view);
+  const setView = useSkillPinsStore((store) => store.setView);
+  const storedFilter = useSkillPinsStore((store) => store.filter);
+  const setFilter = useSkillPinsStore((store) => store.setFilter);
+  // A filter saved by an older build may no longer exist.
+  const filter: SkillFilter = SKILL_FILTERS.includes(storedFilter) ? storedFilter : "all";
   const removeSkill = useAtomCommand(serverEnvironment.removeSkill, { reportFailure: true });
   const getSkillAuthors = useAtomCommand(serverEnvironment.getSkillAuthors, {
     reportFailure: false,
@@ -158,6 +167,105 @@ export function ThreadSkillsSection(props: {
     if (result._tag === "Success") setRemovedPaths((paths) => new Set([...paths, skill.path]));
   };
 
+  const renderSkill = (skill: ServerProviderSkill) => {
+    const pinKey = skillPinKey(provider.driver, skill);
+    const isPinned = pinned.includes(pinKey);
+    const author = authors.get(skill.path);
+    const pin = isPinned ? (
+      <PinIcon aria-label="Pinned" className="size-3 shrink-0 text-muted-foreground" />
+    ) : null;
+    const shownSkill = view === "gallery" ? presentSkill(skill) : null;
+    const Icon = shownSkill?.icon;
+    return (
+      <li key={skill.path} className="group/skill relative rounded-md hover:bg-accent">
+        <button
+          type="button"
+          className={cn(
+            "flex w-full rounded-md px-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            shownSkill === null
+              ? "flex-col items-start gap-0.5 py-1 pe-20"
+              : "items-center gap-2.5 py-1.5",
+          )}
+          aria-label={`Add the ${skill.name} skill to your message`}
+          onClick={() => addToMessage(skill)}
+        >
+          {shownSkill === null || Icon === undefined ? (
+            <>
+              <span className="flex items-center gap-1 font-mono text-xs text-foreground">
+                {skill.name}
+                {pin}
+              </span>
+              {author ? (
+                <span className="text-2xs text-muted-foreground/70">by {author}</span>
+              ) : null}
+              <span data-fork-skill-description="" className="text-xs text-muted-foreground">
+                {skill.shortDescription ?? skill.description ?? ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <span data-fork-skill-tile="" aria-hidden>
+                <Icon strokeWidth={1.75} />
+              </span>
+              <span className="flex min-w-0 flex-col gap-px">
+                <span className="flex items-center gap-1 truncate text-xs font-semibold text-foreground">
+                  {shownSkill.title}
+                  {pin}
+                </span>
+                <span
+                  data-fork-skill-description=""
+                  className="text-2xs leading-snug text-muted-foreground"
+                >
+                  {shownSkill.pitch}
+                </span>
+              </span>
+            </>
+          )}
+        </button>
+        <span
+          className={cn(
+            "absolute top-1 right-1 flex items-center rounded-md opacity-0 focus-within:opacity-100 group-hover/skill:opacity-100 has-[[data-popup-open]]:opacity-100",
+            shownSkill !== null && "bg-accent",
+          )}
+        >
+          <SkillCard skill={skill} environmentId={props.environmentId} threadRef={threadRef} />
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon-xs"
+                  variant="ghost-muted"
+                  aria-label={isPinned ? `Unpin ${skill.name}` : `Pin ${skill.name}`}
+                  onClick={() => togglePin(pinKey)}
+                />
+              }
+            >
+              {isPinned ? <PinOffIcon aria-hidden /> : <PinIcon aria-hidden />}
+            </TooltipTrigger>
+            <TooltipPopup>{isPinned ? "Unpin" : "Pin to the top"}</TooltipPopup>
+          </Tooltip>
+          {isRemovableSkill(skill) ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    size="icon-xs"
+                    variant="ghost-muted"
+                    aria-label={`Remove ${skill.name}`}
+                    onClick={() => void remove(skill)}
+                  />
+                }
+              >
+                <Trash2Icon aria-hidden />
+              </TooltipTrigger>
+              <TooltipPopup>Move to the Trash</TooltipPopup>
+            </Tooltip>
+          ) : null}
+        </span>
+      </li>
+    );
+  };
+
   return (
     <ThreadDetailsSection
       headingId="thread-details-skills-heading"
@@ -170,6 +278,14 @@ export function ThreadSkillsSection(props: {
             size="compact"
           />
           {skills.length}
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label={view === "gallery" ? "Show as a compact list" : "Show as a gallery"}
+            onClick={() => setView(view === "gallery" ? "list" : "gallery")}
+          >
+            {view === "gallery" ? <ListIcon aria-hidden /> : <LayoutGridIcon aria-hidden />}
+          </Button>
           <Button
             size="icon-xs"
             variant="ghost-muted"
@@ -207,7 +323,7 @@ export function ThreadSkillsSection(props: {
             />
           </label>
           <div role="tablist" aria-label="Skill filters" className="flex flex-wrap gap-1">
-            {(["all", "project", "plugin", "pinned"] as const).map((id) =>
+            {SKILL_FILTERS.map((id) =>
               id !== "all" && shown.counts[id] === 0 && filter !== id ? null : (
                 <Button
                   key={id}
@@ -223,75 +339,28 @@ export function ThreadSkillsSection(props: {
               ),
             )}
           </div>
-          <ul className="m-0 max-h-96 list-none overflow-y-auto p-0">
-            {shown.skills.map((skill) => {
-              const pinKey = skillPinKey(provider.driver, skill);
-              const isPinned = pinned.includes(pinKey);
-              return (
-                <li key={skill.path} className="group/skill relative rounded-md hover:bg-accent">
-                  <button
-                    type="button"
-                    className="flex w-full flex-col items-start gap-0.5 rounded-md px-1.5 py-1 pe-20 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    aria-label={`Add the ${skill.name} skill to your message`}
-                    onClick={() => addToMessage(skill)}
-                  >
-                    <span className="flex items-center gap-1 font-mono text-xs text-foreground">
-                      {skill.name}
-                      {isPinned ? (
-                        <PinIcon aria-label="Pinned" className="size-3 text-muted-foreground" />
-                      ) : null}
-                    </span>
-                    {authors.get(skill.path) ? (
-                      <span className="text-2xs text-muted-foreground/70">
-                        by {authors.get(skill.path)}
-                      </span>
-                    ) : null}
-                    <span data-fork-skill-description="" className="text-xs text-muted-foreground">
-                      {skill.shortDescription ?? skill.description ?? ""}
-                    </span>
-                  </button>
-                  <span className="absolute top-1 right-1 flex items-center opacity-0 focus-within:opacity-100 group-hover/skill:opacity-100 has-[[data-popup-open]]:opacity-100">
-                    <SkillCard
-                      skill={skill}
-                      environmentId={props.environmentId}
-                      threadRef={threadRef}
-                    />
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            size="icon-xs"
-                            variant="ghost-muted"
-                            aria-label={isPinned ? `Unpin ${skill.name}` : `Pin ${skill.name}`}
-                            onClick={() => togglePin(pinKey)}
-                          />
-                        }
-                      >
-                        {isPinned ? <PinOffIcon aria-hidden /> : <PinIcon aria-hidden />}
-                      </TooltipTrigger>
-                      <TooltipPopup>{isPinned ? "Unpin" : "Pin to the top"}</TooltipPopup>
-                    </Tooltip>
-                    {isRemovableSkill(skill) ? (
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              size="icon-xs"
-                              variant="ghost-muted"
-                              aria-label={`Remove ${skill.name}`}
-                              onClick={() => void remove(skill)}
-                            />
-                          }
-                        >
-                          <Trash2Icon aria-hidden />
-                        </TooltipTrigger>
-                        <TooltipPopup>Move to the Trash</TooltipPopup>
-                      </Tooltip>
-                    ) : null}
-                  </span>
-                </li>
-              );
-            })}
+          {/* Marked so the details card leaves it out when checking whether its full layout fits:
+              a thread with a busy card would otherwise drop to the compact one, which hides skills. */}
+          <ul data-fork-skills-list="" className="m-0 max-h-96 list-none overflow-y-auto p-0">
+            {filter !== "all" && filter !== "pinned"
+              ? groupCollectionSkills(filter, shown.skills).map(
+                  ({ section, skills: sectionSkills }) => (
+                    <li key={section.number || "all"} className="list-none">
+                      {section.number === "" ? null : (
+                        <div className="flex items-baseline gap-2 px-1.5 pt-3 pb-1">
+                          <span className="font-mono text-2xs text-muted-foreground/70 tabular-nums">
+                            {section.number}
+                          </span>
+                          <span className="text-xs font-semibold text-foreground">
+                            {section.title}
+                          </span>
+                        </div>
+                      )}
+                      <ul className="m-0 list-none p-0">{sectionSkills.map(renderSkill)}</ul>
+                    </li>
+                  ),
+                )
+              : shown.skills.map(renderSkill)}
             {shown.skills.length === 0 ? (
               <li className="px-1.5 py-2 text-xs text-muted-foreground">No skills match.</li>
             ) : null}

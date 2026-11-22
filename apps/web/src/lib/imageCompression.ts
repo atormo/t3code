@@ -7,6 +7,7 @@ import {
   IMAGE_DIMENSIONS_HEADER_BYTES,
   readImageDimensions,
 } from "@t3tools/shared/imageDimensions";
+import { composerThumbnailSize } from "../fork/chatview/screenshotMedia";
 
 const MAX_DIMENSION = IMAGE_ATTACHMENT_MAX_EDGE;
 export const MAX_STASH_IMAGE_DATA_URL_CHARS = 1_300_000;
@@ -258,22 +259,11 @@ async function renderComposerImageThumbnail(file: File): Promise<string | null> 
 
 async function renderComposerImageThumbnailFromBitmap(bitmap: ImageBitmap): Promise<string | null> {
   try {
-    const side = Math.min(bitmap.width, bitmap.height);
-    if (side <= 0) return null;
-    const dimension = Math.min(256, side);
-    const surface = createCanvas(dimension, dimension);
+    const size = composerThumbnailSize(bitmap.width, bitmap.height);
+    if (!size) return null;
+    const surface = createCanvas(size.width, size.height);
     if (!surface) return null;
-    surface.context.drawImage(
-      bitmap,
-      (bitmap.width - side) / 2,
-      (bitmap.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      dimension,
-      dimension,
-    );
+    surface.context.drawImage(bitmap, 0, 0, size.width, size.height);
     const blob = await encodeCanvas(surface.canvas, 1, "image/png");
     return blob ? await readFileAsDataUrl(blob) : null;
   } catch {

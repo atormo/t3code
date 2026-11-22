@@ -47,6 +47,12 @@ import { Button, InlineButton } from "../ui/button";
 import { FreshSessionRow, ModelSwitchRow } from "./V2LifecycleRow";
 import { useAssetUrlRefresh, useAssetUrls, useAssetUrlState } from "../../assets/assetUrls";
 import { AttachmentImage } from "../media/AttachmentImage";
+import {
+  LONE_SCREENSHOT_CLASS_NAME,
+  SCREENSHOT_TILE_CLASS_NAME,
+  TILED_SCREENSHOT_CLASS_NAME,
+  screenshotGridClassName,
+} from "../../fork/chatview/screenshotMedia";
 import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
 import {
   buildAttachmentVideoAsset,
@@ -684,16 +690,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             : loneImage
               ? "max-w-full"
               : collage
-                ? cn(
-                    MEDIA_EDGE_CLASS_NAME,
-                    "w-80 max-w-full gap-px overflow-hidden rounded-2xl bg-black/9 dark:bg-white/12",
-                    mediaCornerClassName,
-                    regularImages.length === 2
-                      ? "auto-rows-[12rem] grid-cols-2"
-                      : regularImages.length === 3
-                        ? "auto-rows-[calc(6rem-0.5px)] grid-cols-[3fr_2fr]"
-                        : "auto-rows-[6rem] grid-cols-2",
-                  )
+                ? screenshotGridClassName(regularImages.length)
                 : regularImages.length + userVideos.length === 1
                   ? "w-80 max-w-full"
                   : "w-80 max-w-full grid-cols-2 gap-2",
@@ -719,12 +716,9 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                   ? cn(MEDIA_EDGE_CLASS_NAME, "overflow-hidden rounded-2xl", mediaCornerClassName)
                   : collage
                     ? cn(
-                        "overflow-hidden bg-background",
-                        regularImages.length === 3 && index === 0 && "row-span-2",
-                        regularImages.length > 3 &&
-                          regularImages.length % 2 === 1 &&
-                          index === regularImages.length - 1 &&
-                          "col-span-2",
+                        MEDIA_EDGE_CLASS_NAME,
+                        SCREENSHOT_TILE_CLASS_NAME,
+                        index === regularImages.length - 1 && mediaCornerClassName,
                       )
                     : standaloneMedia
                       ? cn(MEDIA_EDGE_CLASS_NAME, "aspect-[4/3] overflow-hidden rounded-2xl")
@@ -755,8 +749,10 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                     standaloneMedia && image.source?.kind === "snap-shot"
                       ? "h-auto max-h-48 w-auto min-w-24 max-w-full object-contain"
                       : loneImage
-                        ? "h-48 w-auto min-w-24 max-w-full object-cover"
-                        : "size-full object-cover",
+                        ? LONE_SCREENSHOT_CLASS_NAME
+                        : collage
+                          ? TILED_SCREENSHOT_CLASS_NAME
+                          : "size-full object-cover",
                   )}
                 />
               </button>
@@ -765,7 +761,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                 className={cn(
                   "flex min-h-[72px] items-center justify-center px-2 py-3 text-center text-2xs text-muted-foreground/70",
                   loneImage && "h-48 w-64 max-w-full",
-                  collage && "h-full",
+                  collage && "h-32",
                 )}
               >
                 {image.name}
