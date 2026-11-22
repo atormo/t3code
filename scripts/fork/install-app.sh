@@ -8,6 +8,10 @@ cd "$(git rev-parse --show-toplevel)"
 app_name="T3 Code (Beta)"
 target="/Applications/${app_name}.app"
 
+. scripts/fork/lib.sh
+echo "==> Checking dependencies"
+ensure_dependencies
+
 echo "==> Building the DMG"
 rm -rf release
 vp run dist:desktop:dmg
@@ -30,6 +34,8 @@ ditto "$source_app" "$target"
 
 # Lets the app's "Check for Updates" find this checkout.
 printf '{"repo":"%s"}\n' "$(pwd)" >"$HOME/.t3code-fork.json"
+# Keeps t3code fetched in the background so updates stay small and the check is instant.
+scripts/fork/setup-background-fetch.sh || true
 
 open -a "$target"
 echo "Installed ${target}."

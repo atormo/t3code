@@ -28,13 +28,22 @@ const git = Effect.fn("ForkUpdates.git")(function* (repo: string, args: readonly
   return yield* spawner.string(ChildProcess.make("git", [...args], { cwd: repo }));
 });
 
+/**
+ * How far the checkout is behind t3code. A launchd job (scripts/fork/background-fetch.sh) keeps
+ * upstream/main fresh, so this fetch is small; if GitHub is slow it falls back to the last fetch
+ * instead of failing, and says so.
+ */
 const commitsBehindUpstream = Effect.fn("ForkUpdates.commitsBehindUpstream")(function* (
   repo: string,
 ) {
-  yield* git(repo, ["fetch", "--quiet", "upstream", "main"]);
+  const fresh = yield* git(repo, ["fetch", "--quiet", "--no-tags", "upstream", "main"]).pipe(
+    Effect.timeout("30 seconds"),
+    Effect.as(true),
+    Effect.orElseSucceed(() => false),
+  );
   const count = yield* git(repo, ["rev-list", "--count", "HEAD..upstream/main"]);
-  return Number(count.trim());
-}, Effect.timeout("2 minutes"));
+  return { behind: Number(count.trim()), fresh };
+});
 
 /** AppleScript that runs the fork's sync script in a new Terminal window. */
 export function syncInTerminalScript(repo: string): string {
@@ -63,7 +72,7 @@ export const checkForkUpdates = Effect.gen(function* () {
     });
     return;
   }
-  const behind = yield* commitsBehindUpstream(repo).pipe(
+  const result = yield* commitsBehindUpstream(repo).pipe(
     Effect.catch((error) =>
       dialog
         .showMessageBox({
@@ -76,12 +85,17 @@ export const checkForkUpdates = Effect.gen(function* () {
         .pipe(Effect.as(null)),
     ),
   );
-  if (behind === null) return;
+  if (result === null) return;
+  const { behind, fresh } = result;
+  const staleNote = fresh
+    ? ""
+    : " GitHub did not answer in time, so this count is from the last background check.";
   if (behind === 0) {
     yield* dialog.showMessageBox({
       type: "info",
       title: "You're up to date",
       message: "Your fork has every change from t3code.",
+      ...(fresh ? {} : { detail: staleNote.trim() }),
       buttons: ["OK"],
     });
     return;
@@ -91,7 +105,8 @@ export const checkForkUpdates = Effect.gen(function* () {
     title: "Updates available",
     message: `t3code has ${behind} new ${behind === 1 ? "change" : "changes"}.`,
     detail:
-      "Update merges them into your fork, runs its checks and reinstalls T3 Code. It runs in Terminal; T3 Code quits and reopens at the end. If a change clashes with yours, it stops and lists the files.",
+      "Update merges them into your fork, runs its checks and reinstalls T3 Code. It runs in Terminal; T3 Code quits and reopens at the end. If a change clashes with yours, it offers to open Claude Code to fix it." +
+      staleNote,
     buttons: ["Update", "Later"],
     defaultId: 0,
     cancelId: 1,

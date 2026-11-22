@@ -6,21 +6,33 @@ fusionando `upstream/main`, nunca reescribiendo historia.
 
 ## Mantenerlo al día
 
+Lo normal es no hacer nada a mano:
+
+1. Un servicio de macOS (`com.t3code-fork.fetch`, lo instala `install-app.sh`) descarga t3code
+   cada 6 horas en segundo plano. Así cada actualización es pequeña.
+2. Cuando se juntan 50 cambios nuevos, macOS te avisa con una notificación.
+3. En la app, **T3 Code → Check for Updates…** dice cuántos cambios hay y, si aceptas, abre la
+   Terminal con `sync-upstream.sh --install`: fusiona, instala, pasa los checks, reinstala la app
+   y pregunta si subirlo a GitHub.
+4. Si algo choca (conflictos o checks que fallan), te ofrece abrir **Claude Code** en la misma
+   Terminal para arreglarlo siguiendo este archivo, y luego sigue solo.
+5. Si tu ajuste de pnpm rechaza paquetes demasiado nuevos, te los enseña y pregunta antes de
+   instalarlos solo esa vez.
+
 ```bash
-scripts/fork/sync-upstream.sh            # trae t3code, instala dependencias y pasa los checks
-scripts/fork/sync-upstream.sh --install  # además reconstruye e instala la app de Mac
+scripts/fork/sync-upstream.sh --install  # lo que lanza Check for Updates
+scripts/fork/sync-upstream.sh            # igual, sin reinstalar la app
 scripts/fork/check.sh                    # solo los checks que protegen las funciones del fork
 scripts/fork/install-app.sh              # solo reconstruir e instalar la app
-git push origin main                     # guardar en github.com/atormo/t3code
+scripts/fork/setup-background-fetch.sh   # reinstalar el servicio de descarga
 ```
 
-Si `sync-upstream.sh` para por conflictos, resuélvelos usando la tabla de abajo, haz commit
-y vuelve a ejecutarlo. La regla al resolver: conservar el cambio de t3code y volver a aplicar
-encima nuestra parte, que siempre es pequeña.
+Nunca lances `install-app.sh` desde un hilo de T3 Code: cierra la app y se cortaría a medias.
+El estado de la última descarga está en `~/.t3code-fork-status.json` y su registro en
+`~/Library/Logs/t3code-fork-fetch.log`.
 
 La app instalada no tiene canal de actualización: una versión oficial de T3 Code nunca la
-sobrescribe. En la app, **T3 Code → Check for Updates…** dice cuántos cambios nuevos tiene t3code y,
-si aceptas, abre la Terminal con `sync-upstream.sh --install`.
+sobrescribe.
 
 ## Reglas para cambios nuevos
 
