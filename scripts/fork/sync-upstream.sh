@@ -20,7 +20,8 @@ if [[ "${1:-}" == "--install" ]]; then install_app=true; fi
 fix_with_claude() {
   if ! command -v claude >/dev/null 2>&1; then return 1; fi
   ask "¿Abrir Claude Code para arreglarlo? [S/n]" s || return 1
-  claude "$1" </dev/tty || true
+  # Claude Code needs the Terminal's own stdin: redirecting /dev/tty breaks its file watcher.
+  claude "$1" || true
 }
 
 if [[ -e .git/MERGE_HEAD ]]; then
