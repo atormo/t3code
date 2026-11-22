@@ -28,6 +28,9 @@ si aceptas, abre la Terminal con `sync-upstream.sh --install`.
   archivos nuevos con nombre propio. Tocar archivos de t3code solo para engancharlo.
 - Cada enganche en un archivo de t3code, lo más corto posible y anotado en la tabla.
 - Cada función con un test que falle si una actualización la rompe, y añadido a `check.sh`.
+- Textos: t3code exige traducir todo (`t3code/no-untranslated-copy`). El código propio del fork
+  queda fuera de esa regla en `vite.config.ts`; los textos que el fork añade en archivos de t3code
+  van con `gt()` o `msg()`, como los de t3code.
 
 ## Funciones y dónde tocan t3code
 
