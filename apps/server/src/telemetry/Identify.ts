@@ -338,4 +338,9 @@ export const getServerOwnersForHome = Effect.fn("getServerOwnersForHome")(functi
   );
 });
 
-export const getServerOwners = Effect.flatMap(HostProcess.HomeDirectory, getServerOwnersForHome);
+// fork: never read ~/.codex/auth.json or ~/.claude.json unless analytics were opted into.
+export const getServerOwners = Effect.flatMap(HostProcess.Environment, (env) =>
+  env.T3CODE_TELEMETRY_ENABLED?.trim().toLowerCase() === "true"
+    ? Effect.flatMap(HostProcess.HomeDirectory, getServerOwnersForHome)
+    : Effect.succeed<ReadonlyArray<TelemetryOwner>>([]),
+);

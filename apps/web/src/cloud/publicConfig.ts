@@ -65,7 +65,8 @@ let desktopRelayTelemetry: boolean | null = null;
 
 /** Whether relay spans may be exported now; the desktop host may not know yet at startup. */
 export function relayTelemetryEnabled(): boolean | null {
-  if (typeof window === "undefined" || !window.desktopBridge) return true;
+  // fork: browser and mobile-web clients never export relay spans.
+  if (typeof window === "undefined" || !window.desktopBridge) return false;
   desktopRelayTelemetry ??= window.desktopBridge.getRelayTelemetryEnabled();
   return desktopRelayTelemetry;
 }
